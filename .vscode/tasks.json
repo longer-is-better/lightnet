@@ -1,0 +1,47 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "cmake build v2",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build"
+            ],
+            "group": "build",
+            "dependsOn": "cmake configure v2"
+        },
+        {
+            "label": "cmake configure v2",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S",
+                "${workspaceFolder}",
+                "-B",
+                "${workspaceFolder}/build",
+                "-DCMAKE_BUILD_TYPE=debug",
+                "-DCMAKE_VERBOSE_MAKEFILE=off"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            // "dependsOn": "cmake clean v2"
+        },
+        {
+            "label": "cmake clean v2",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--target",
+                "clean"
+            ],
+            "group": "build"
+        }
+    ]
+  }
+  

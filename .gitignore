@@ -1,0 +1,15 @@
+# First, ignore everything
+# *
+# Now, whitelist anything that's a directory
+*.raw
+build
+*.o
+*.a
+*.so
+*.out
+*.pt
+log
+*.log
+# And all the file types you're interested in.
+!*.cu*
+!CMakeLists.txt
