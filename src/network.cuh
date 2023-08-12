@@ -16,7 +16,7 @@ public:
     ~Network();
 
     void to(cudaMemoryType type);
-    void init(std::vector<Tensor*> sample_inputs, std::string weight_path);
+    std::vector<Tensor*> init(std::vector<Tensor*> sample_inputs, std::string weight_path);
     std::vector<Tensor*> forward(std::vector<Tensor*> input_tensors);
     void backward();
     void update_weights(float alpha);

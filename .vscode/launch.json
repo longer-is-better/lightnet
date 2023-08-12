@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}//build/tests/test_network/test_network",
             "preLaunchTask": "cmake build v2",
-            "args": "--logtostderr=1 --minloglevel=0 --v=9",
+            "args": "--logtostderr=1 --minloglevel=0 --v=8",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": []

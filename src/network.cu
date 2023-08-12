@@ -40,7 +40,7 @@ void Network::to(cudaMemoryType type){
 /// @brief infer tensor shape, tensor malloc data, tensor malloc gradient if train
 /// @param sample_inputs 
 /// @param weight_path 
-void Network::init(std::vector<Tensor*> sample_inputs, std::string weight_path) {
+std::vector<Tensor*> Network::init(std::vector<Tensor*> sample_inputs, std::string weight_path) {
     CHECK_EQ(_input_tensors.size(), sample_inputs.size());
     for (int i = 0; i < _input_tensors.size(); i++) {
         *_input_tensors[i] = *sample_inputs[i];
@@ -56,6 +56,7 @@ void Network::init(std::vector<Tensor*> sample_inputs, std::string weight_path) 
             if (_train) tensor->malloc_gradient();
         }
     }
+    return get_output_tensors();
 }
 
 

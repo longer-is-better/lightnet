@@ -38,6 +38,10 @@ void MatMul::forward() {
         (_output_tensors[0]->_shape[0] + BLOCK.y - 1) / BLOCK.y
     );
     size_t shared_mem = BLOCK.x * BLOCK.y * BLOCK.z * sizeof(float) * 2;
+
+    check_device_data(_input_tensors[0]->_p_data, _input_tensors[0]->_element_count);
+    check_device_data(_input_tensors[1]->_p_data, _input_tensors[1]->_element_count);
+    check_device_data(_output_tensors[0]->_p_data, _output_tensors[0]->_element_count);
     kmatmul<<<GRID, BLOCK, shared_mem, _cudastream>>>(
         false,
         false,
@@ -49,6 +53,8 @@ void MatMul::forward() {
         _output_tensors[0]->_p_data
     );
     checkCudaErrors(cudaDeviceSynchronize());
+    VLOG(9) << ".....................";
+
 }
 
 

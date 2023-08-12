@@ -1,4 +1,3 @@
-#pragma once
 #include "kernel_elementwise.cuh"
 
 __global__ void kelementwise(size_t N, float *I, float alpha, float *operand, float *O, ELE_OP op) {

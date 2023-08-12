@@ -270,10 +270,11 @@ Tensor Tensor::operator[](int i) {
 
 
 void Tensor::malloc_data() {
-    CHECK_EQ(_p_data, static_cast<float*>(nullptr)) << "data already malloced";
     if (_data_memorytype == cudaMemoryTypeHost) {
+        free(_p_data);
         CHECK_NOTNULL(_p_data = (float*)malloc(_total_size));
     } else if (_data_memorytype == cudaMemoryTypeDevice) {
+        checkCudaErrors(cudaFree(_p_data));
         checkCudaErrors(cudaMalloc(&_p_data, _total_size));
     } else {
         LOG(FATAL) << "not implement.";
@@ -281,10 +282,11 @@ void Tensor::malloc_data() {
 }
 
 void Tensor::malloc_gradient() {
-    CHECK_EQ(_p_gradient, static_cast<float*>(nullptr)) << "gradient already malloced";
     if (_data_memorytype == cudaMemoryTypeHost) {
+        free(_p_gradient);
         CHECK_NOTNULL(_p_gradient = (float*)malloc(_total_size));
     } else if (_data_memorytype == cudaMemoryTypeDevice) {
+        checkCudaErrors(cudaFree(_p_gradient));
         checkCudaErrors(cudaMalloc(&_p_gradient, _total_size));
     } else {
         LOG(FATAL) << "not implement.";
@@ -307,7 +309,7 @@ void Tensor::to(cudaMemoryType target_memorytype) {
             }
             _shadow_of = nullptr;
         } else {
-            LOG(INFO) << "move tensor with pullptr _p_data";
+            VLOG(9) << "move tensor with pullptr _p_data";
         }
         if (_p_gradient) {
             CHECK_NOTNULL(tmp = (float*)malloc(_total_size));
@@ -315,7 +317,7 @@ void Tensor::to(cudaMemoryType target_memorytype) {
             checkCudaErrors(cudaFree(_p_gradient));
             _p_gradient = tmp;
         } else {
-            LOG(INFO) << "move tensor with pullptr _p_gradient";
+            VLOG(9) << "move tensor with pullptr _p_gradient";
         }
     } else if (target_memorytype == cudaMemoryTypeDevice) {
         if (_p_data) {
@@ -324,7 +326,7 @@ void Tensor::to(cudaMemoryType target_memorytype) {
             free(_p_data);
             _p_data = tmp;
         } else {
-            LOG(INFO) << "move tensor with pullptr _p_data";
+            VLOG(9) << "move tensor with pullptr _p_data";
         }
         if (_p_gradient) {
             checkCudaErrors(cudaMalloc(&tmp, _total_size));
@@ -332,7 +334,7 @@ void Tensor::to(cudaMemoryType target_memorytype) {
             free(_p_gradient);
             _p_gradient = tmp;
         } else {
-            LOG(INFO) << "move tensor with pullptr _p_gradient";
+            VLOG(9) << "move tensor with pullptr _p_gradient";
         }
     }
     _data_memorytype = target_memorytype;
@@ -350,7 +352,7 @@ void Tensor::fill_data_random(float lower_bound, float upper_bound){
     } else {
         LOG(FATAL) << "not implement.";
     }
-    LOG(INFO) << "random fill tensor[" << _name << "] data.";
+    VLOG(9) << "random fill tensor[" << _name << "] data.";
 }
 
 void Tensor::mirror(

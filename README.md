@@ -107,16 +107,15 @@ void Tensor::update_weights(float alpha, cudaStream_t cudastream) {
         int a = 1;
 ```
 
-
-
     Tensor* a = new Tensor({1});
 
     a->update_weights(1.f, cudaStreamDefault);
 
     ComputeGraph test_graph;  // 没有这句话，上面一句执行结果正常，加上这句话，上面一句执行结果异常。真见了鬼了
 
+最终定位原因为编译连接问题，多处有同一kernel调用就会调用失败，workaround 全部文件一起编译了
 
-
+### lunch kernnel 随机 Segmentation fault
 
 
 
