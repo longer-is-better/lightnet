@@ -34,21 +34,21 @@ public:
 
     Tensor();
     Tensor(Operator *p_from);
-    Tensor(std::vector<size_t> shape);
+    Tensor(std::vector<size_t> shape, cudaMemoryType memtype = cudaMemoryTypeHost, float *data = nullptr);
     Tensor(const Tensor &tensor);
     Tensor(Tensor &&tensor);
-    Tensor& operator=(const Tensor &tensor);
-    Tensor& operator=(Tensor &&tensor);
+    Tensor &operator=(const Tensor &tensor);
+    Tensor &operator=(Tensor &&tensor);
+    Tensor &operator[](int i);
+    Tensor &operator==(const Tensor &tensor) const;
     ~Tensor();
 
-    Tensor operator[](int i);
     void set_shape(std::vector<size_t> shape);
-    void malloc_data();
-    void malloc_gradient();
+    void alloc_memory();
     bool load_data() {LOG(WARNING) << "not implement"; return false;};
     void to(cudaMemoryType memorytype);
     void fill_data_random(float lower_bound, float upper_bound);
     void mirror(const std::map<Tensor*, Tensor*>& tensor_map, const std::map<Operator*, Operator*>& operator_map);
     void update_weights(float alpha, cudaStream_t cudastream);
-    friend std::ostream& operator<<(std::ostream& os, Tensor tensor);
+    friend std::ostream& operator<<(std::ostream& os, Tensor &tensor);
 };

@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(cuda-practice_v1 LANGUAGES CXX CUDA)
 
+add_definitions(-DDEBUG=1)
 set(CMAKE_CUDA_FLAGS_DEBUG "-g -G")
 
 find_package(PkgConfig REQUIRED)

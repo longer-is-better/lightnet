@@ -59,6 +59,20 @@ TEST(network, mm) {
     ComputeGraph *mm_graph = new ComputeGraph();
     mm_graph->_input_tensors.push_back(new Tensor());
     mm_graph->_weight_tensors.push_back(new Tensor({2, 2}));
+
+
+
+    mm_graph->_weight_tensors[0]->_p_data[0] = 1.f;
+    mm_graph->_weight_tensors[0]->_p_data[1] = 1.f;
+    mm_graph->_weight_tensors[0]->_p_data[2] = 1.f;
+    mm_graph->_weight_tensors[0]->_p_data[3] = -1.f;
+
+
+
+
+
+
+
     new MatMul(mm_graph->_weight_tensors[0], mm_graph->_input_tensors[0]);
 
     ComputeGraph *l1loss_graph = new L1LossGraph();
@@ -69,32 +83,39 @@ TEST(network, mm) {
     Tensor *target = new Tensor({2, 1});
 
 
-    Network mm_net(mm_graph, true, cudaStreamDefault);
+    Network mm_net(mm_graph, cudaStreamDefault);
     mm_net.to(cudaMemoryTypeDevice);
-    mm_net._weight_tensors[0]->fill_data_random(-1.0, 1.0);
+    // mm_net._weight_tensors[0]->fill_data_random(-1.0, 1.0);
     std::vector<Tensor*> init_out = mm_net.init({input}, "");
 
 
-    Network l1loss(l1loss_graph, true, cudaStreamDefault);
+    Network l1loss(l1loss_graph, cudaStreamDefault);
     l1loss.to(cudaMemoryTypeDevice);
     l1loss.init({init_out[0], target}, "");
 
 
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 1; i++) {
         input->fill_data_random(-1.0, 1.0);
-        // target->_p_data[0] = input->_p_data[0] + input->_p_data[1];
-        // target->_p_data[1] = input->_p_data[0] - input->_p_data[1];
-        // std::vector<Tensor*> predict = mm_net.forward({input});
-        // std::vector<Tensor*> loss = l1loss.forward({predict[0], target});
-        std::vector<Tensor*> loss = l1loss.forward({input, input});
+        target->_p_data[0] = input->_p_data[0] + input->_p_data[1];
+        target->_p_data[1] = input->_p_data[0] - input->_p_data[1];
 
-        // std::cout << "loss: " << loss[0] << std::endl;
+        std::cout << "input" << *input;
+        std::cout << "target" << *target;
+    
+        std::vector<Tensor*> predict = mm_net.forward({input});
+        std::cout << "predict" << *predict[0];
 
-        // l1loss.backward();
-        // *mm_net.get_output_tensors()[0] = *l1loss._input_tensors[0];
-        // mm_net.backward();
+        std::vector<Tensor*> loss = l1loss.forward({predict[0], target});
 
-        // mm_net.update_weights(0.1);
+        Tensor show_loss;
+        show_loss = *loss[0];
+        std::cout << "loss: " << show_loss << std::endl;
+
+        l1loss.backward();
+        *mm_net.get_output_tensors()[0] = *l1loss._input_tensors[0];
+        mm_net.backward();
+
+        mm_net.update_weights(0.1);
     }
 
 }

@@ -9,6 +9,8 @@ enum class MAP_OP {
     SIGN
 };
 
+std::ostream& operator<<(std::ostream& os, MAP_OP op);
+
 template <typename T>
 __global__ void kmap(size_t N, T *I, T *O, MAP_OP op, T operand) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;

@@ -4,7 +4,6 @@ add_executable(test_network main.cpp ${test_network_files})
 target_link_libraries(
   test_network
   all_in_one
-  # loss
   gflags
   GTest::gtest
   ${CUDA_LIBRARIES}

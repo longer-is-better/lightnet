@@ -1,0 +1,6 @@
+#include "kernel_elementwise.cuh"
+#include "kernel_map.cuh"
+#include "kernel_matmul.cuh"
+#include "kernel_others.cuh"
+#include "kernel_reduce.cuh"
+#include "kernel_relu.cuh"

@@ -117,8 +117,6 @@ void Tensor::update_weights(float alpha, cudaStream_t cudastream) {
 
 ### lunch kernnel 随机 Segmentation fault
 
-
-
 ## diary
 
 [ RUN      ] general/test_relu_float_1d_input.check_output_vs_cpu/2
@@ -220,3 +218,13 @@ oprator 其实就是 compute gragh，把oprator 抽象为  compute gragh，可�
 kernel 模板貌似没什么意义
 
 network operator tensor 的 loation（host device）需要理清一遍
+
+析构函数清理
+
+# VLOG
+
+# schedule
+
+8.15 ~ 8.16 matmul kernel test
+
+8.16 ~ 8.18 matmul net forward backward

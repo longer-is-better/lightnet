@@ -11,10 +11,12 @@ public:
 
 
     Reduce(){};
+    Reduce(REDUCE_OP op);
     Reduce(Tensor*A, REDUCE_OP op);
     ~Reduce(){};
 
-    virtual Operator* copy();
+    virtual std::string type_str();
+    virtual Reduce* copy();
     virtual void infer_shape();
     virtual void forward();
     virtual void backward();

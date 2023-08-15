@@ -6,13 +6,12 @@ class Network: public ComputeGraph
 {
 public:
     static Network *_trianer;
-    bool _train;
     cudaStream_t _cudastream;
 
 
 
     Network();
-    Network(ComputeGraph *computegraph, bool train, cudaStream_t cudastream);
+    Network(ComputeGraph *computegraph, cudaStream_t cudastream);
     ~Network();
 
     void to(cudaMemoryType type);

@@ -1,4 +1,4 @@
-#include <queue>
+#include <set>
 #include <map>
 
 // #include "operators.h"
@@ -13,9 +13,13 @@ ComputeGraph::~ComputeGraph() {
 
 std::list<Operator*> &ComputeGraph::get_op_seq() {
     if (_op_seq.empty()) {
+        std::set<Operator*> init_ops;
         for (Tensor* t: _input_tensors) {
             for (Operator* op: t->_to) {
-                _op_seq.push_back(op);
+                if (init_ops.find(op) == init_ops.end()) {
+                    _op_seq.push_back(op);
+                    init_ops.insert(op);
+                }
             }
         }
         for (Operator* p_op_in_seq: _op_seq) {

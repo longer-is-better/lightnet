@@ -22,7 +22,8 @@
                 "-B",
                 "${workspaceFolder}/build",
                 "-DCMAKE_BUILD_TYPE=debug",
-                "-DCMAKE_VERBOSE_MAKEFILE=off"
+                "-DCMAKE_VERBOSE_MAKEFILE=off",
+                "-DDEBUG=1"
             ],
             "group": {
                 "kind": "build",

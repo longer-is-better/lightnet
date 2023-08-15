@@ -4,23 +4,16 @@
 #include "kernel_others.cuh"
 #include "tools_common.cuh"
 
+Map::Map(MAP_OP op, float operand):_map_op(op), _operand(operand) {}
 
-
-Map::Map(
-    Tensor* A,
-    MAP_OP op,
-    float operand
-):
-    Operator({A}, {new Tensor()}),
-    _operand(operand)
-{
-    ;
+Map::Map(Tensor* A, MAP_OP op, float operand)
+    : Operator({A}, {new Tensor()}), _map_op(op),  _operand(operand) {
+  ;
 }
 
-Operator *Map::copy()
-{
-    return new Map();
-}
+std::string Map::type_str() { return std::string("Map"); }
+
+Map* Map::copy() { return new Map(_map_op, _operand); }
 
 void Map::infer_shape() {
     _output_tensors[0]->set_shape(_input_tensors[0]->_shape);
@@ -45,7 +38,7 @@ void Map::forward() {
         _operand
     );
     checkCudaErrors(cudaDeviceSynchronize());
-
+    VLOG(8) << "Map " << _map_op << " forward output tensor: " << *_output_tensors[0];
 }
 
 

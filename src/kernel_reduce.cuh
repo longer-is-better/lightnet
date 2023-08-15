@@ -1,10 +1,14 @@
 #pragma once
 #include <stdio.h>
 
+#include <iostream>
+
 enum class REDUCE_OP {
     SUM = 0,
     AVG
 };
+
+std::ostream& operator<<(std::ostream& os, REDUCE_OP op);
 
 /// @brief calculate reduce result.
 ///        if n <= 2048: reduce<<<1, ceil_32(n / 2), ceil_32(n / 2) * sizeof(T)>>>.

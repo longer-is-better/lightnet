@@ -10,7 +10,8 @@ public:
     MatMul(Tensor*A, Tensor*B);
     ~MatMul(){};
 
-    virtual Operator* copy();
+    virtual std::string type_str();
+    virtual MatMul* copy();
     virtual void set_cudastream(cudaStream_t cudastream);
     virtual void infer_shape();
     virtual void forward();

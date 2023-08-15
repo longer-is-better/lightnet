@@ -3,21 +3,16 @@
 #include "kernel_others.cuh"
 #include "tools_common.cuh"
 
+Reduce::Reduce(REDUCE_OP op):_reduce_op(op) {}
 
-
-Reduce::Reduce(
-    Tensor* A,
-    REDUCE_OP op
-):
-    Operator({A}, {new Tensor()})
-{
-    ;
+Reduce::Reduce(Tensor* A, REDUCE_OP op)
+    : Operator({A}, {new Tensor()}), _reduce_op(op) {
+  ;
 }
 
-Operator *Reduce::copy()
-{
-    return new Reduce();
-}
+std::string Reduce::type_str() { return std::string("Reduce"); }
+
+Reduce* Reduce::copy() { return new Reduce(_reduce_op); }
 
 void Reduce::infer_shape() {
     _output_tensors[0]->set_shape({});

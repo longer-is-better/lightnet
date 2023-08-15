@@ -2,22 +2,16 @@
 #include "kernel_others.cuh"
 #include "kernel_map.cuh"
 #include "kernel_elementwise.cuh"
+#include "tools_common.cuh"
 
+ElementWise::ElementWise(ELE_OP op):_ele_op(op){}
 
-ElementWise::ElementWise(
-    Tensor* A,
-    Tensor* B,
-    ELE_OP op
-):
-    Operator({A, B}, {new Tensor()})
-{
-    ;
-}
+ElementWise::ElementWise(Tensor* A, Tensor* B, ELE_OP op)
+    : Operator({A, B}, {new Tensor()}), _ele_op(op) {}
 
-Operator *ElementWise::copy()
-{
-    return new ElementWise();
-}
+std::string ElementWise::type_str() { return std::string("ElementWise"); }
+
+ElementWise* ElementWise::copy() { return new ElementWise(_ele_op); }
 
 void ElementWise::infer_shape() {
     CHECK_EQ(_input_tensors.size(), 2);
@@ -34,38 +28,16 @@ void ElementWise::forward() {
     dim3 BLOCK(32);
     dim3 GRID((_input_tensors[0]->_element_count + BLOCK.x - 1) / BLOCK.x);
     size_t shared_mem = 0;
-    check_device_data(_input_tensors[0]->_p_data, _input_tensors[0]->_element_count);
-    check_device_data(_input_tensors[1]->_p_data, _input_tensors[1]->_element_count);
-    // check_device_data(_output_tensors[0]->_p_data, _output_tensors[0]->_element_count);
-    // kelementwise<<<GRID, BLOCK, shared_mem, _cudastream>>>(
-    //     _input_tensors[0]->_element_count,
-    //     _input_tensors[0]->_p_data,
-    //     1.f,
-    //     _input_tensors[1]->_p_data,
-    //     _output_tensors[0]->_p_data,
-    //     _ele_op
-    // );
-    float *a=nullptr, *b=nullptr;
-    checkCudaErrors(cudaMalloc(&a, 8));
-    checkCudaErrors(cudaMalloc(&b, 8));
-    check_device_data(a, 2);
-    check_device_data(b, 2);
-    VLOG(8) << "bf";
     kelementwise<<<GRID, BLOCK, shared_mem, _cudastream>>>(
-        2,
-        a,
+        _input_tensors[0]->_element_count,
+        _input_tensors[0]->_p_data,
         1.f,
-        a,
-        b,
+        _input_tensors[1]->_p_data,
+        _output_tensors[0]->_p_data,
         _ele_op
     );
-    VLOG(8) << "mid";
-    checkCudaErrors(cudaDeviceSynchronize());
-    check_device_data(a, 2);
-    check_device_data(b, 2);
-    checkCudaErrors(cudaFree(a));
-    checkCudaErrors(cudaFree(b));
-    VLOG(8) << "aft";
+    D(checkCudaErrors(cudaDeviceSynchronize()));
+    D(VLOG(7) << "ElementWise " << _ele_op << " forward output tensor:" << *_output_tensors[0]);
 }
 
 
@@ -77,6 +49,7 @@ void ElementWise::backward() {
         case ELE_OP::ADD:
             checkCudaErrors(cudaMemcpyAsync(_input_tensors[0]->_p_gradient, _output_tensors[0]->_p_gradient, _output_tensors[0]->_total_size, cudaMemcpyDeviceToDevice, _cudastream));
             checkCudaErrors(cudaMemcpyAsync(_input_tensors[1]->_p_gradient, _output_tensors[0]->_p_gradient, _output_tensors[0]->_total_size, cudaMemcpyDeviceToDevice, _cudastream));
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             break;
         case ELE_OP::SUB:
             checkCudaErrors(cudaMemcpyAsync(_input_tensors[0]->_p_gradient, _output_tensors[0]->_p_gradient, _output_tensors[0]->_total_size, cudaMemcpyDeviceToDevice, _cudastream));
@@ -87,6 +60,7 @@ void ElementWise::backward() {
                 MAP_OP::MULTIPLY,
                 -1.f
             );
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             break;
         case ELE_OP::MULTIPLY:
             kelementwise<<<GRID, BLOCK, shared_mem, _cudastream>>>(
@@ -97,6 +71,7 @@ void ElementWise::backward() {
                 _input_tensors[1]->_p_gradient,
                 ELE_OP::MULTIPLY
             );
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             kelementwise<<<GRID, BLOCK, shared_mem, _cudastream>>>(
                 _output_tensors[0]->_total_size,
                 _input_tensors[1]->_p_data,
@@ -105,6 +80,7 @@ void ElementWise::backward() {
                 _input_tensors[0]->_p_gradient,
                 ELE_OP::MULTIPLY
             );
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             break;
         case ELE_OP::DIVIDE:
             kelementwise<<<GRID, BLOCK, shared_mem, _cudastream>>>(
@@ -115,6 +91,7 @@ void ElementWise::backward() {
                 _input_tensors[0]->_p_gradient,
                 ELE_OP::DIVIDE
             );
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             kmap<<<GRID, BLOCK, shared_mem, _cudastream>>>(
                 _output_tensors[0]->_total_size,
                 _input_tensors[1]->_p_data,
@@ -122,12 +99,14 @@ void ElementWise::backward() {
                 MAP_OP::POW,
                 -2.f
             );
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             kmap_inplace<<<GRID, BLOCK, shared_mem, _cudastream>>>(
                 _output_tensors[0]->_total_size,
                 _input_tensors[1]->_p_gradient,
                 MAP_OP::MULTIPLY,
                 -1.f
             );
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             kelementwise_inplace<<<GRID, BLOCK, shared_mem, _cudastream>>>(
                 _output_tensors[0]->_total_size,
                 _input_tensors[1]->_p_gradient,
@@ -135,6 +114,7 @@ void ElementWise::backward() {
                 _input_tensors[0]->_p_data,
                 ELE_OP::MULTIPLY
             );
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             kelementwise_inplace<<<GRID, BLOCK, shared_mem, _cudastream>>>(
                 _output_tensors[0]->_total_size,
                 _input_tensors[1]->_p_gradient,
@@ -142,9 +122,12 @@ void ElementWise::backward() {
                 _output_tensors[0]->_p_gradient,
                 ELE_OP::MULTIPLY
             );
+            D(checkCudaErrors(cudaDeviceSynchronize()));
             break;
 
         default:
             break;
     }
+    D(VLOG(7) << _name << _ele_op << " backward get input tensor[0]:" << *_input_tensors[0]);
+    D(VLOG(7) << _name << _ele_op << " backward get input tensor[1]:" << *_input_tensors[1]);
 }

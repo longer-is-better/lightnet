@@ -11,10 +11,12 @@ public:
     float _operand;
 
     Map(){};
+    Map(MAP_OP op, float operand = 0.f);
     Map(Tensor*A, MAP_OP op, float operand = 0.f);
     ~Map(){};
 
-    virtual Operator* copy();
+    virtual std::string type_str();
+    virtual Map* copy();
     virtual void infer_shape();
     virtual void forward();
     virtual void backward();

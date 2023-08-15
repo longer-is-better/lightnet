@@ -11,10 +11,12 @@ public:
 
 
     ElementWise(){};
+    ElementWise(ELE_OP op);
     ElementWise(Tensor *A, Tensor *B, ELE_OP op);
     ~ElementWise(){};
 
-    virtual Operator* copy();
+    virtual std::string type_str();
+    virtual ElementWise* copy();
     virtual void infer_shape();
     virtual void forward();
     virtual void backward();

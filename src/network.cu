@@ -8,12 +8,11 @@
 
 Network::Network(
     ComputeGraph *computegraph,
-    bool train,
     cudaStream_t cudastream
 ):
-    _cudastream(cudastream),
-    _train(train)
+    _cudastream(cudastream)
 {
+    for (Operator *op: get_op_seq()) op->set_cudastream(cudastream);
     computegraph->copy(_input_tensors, _weight_tensors);
 }
 
@@ -37,23 +36,24 @@ void Network::to(cudaMemoryType type){
     }
 }
 
-/// @brief infer tensor shape, tensor malloc data, tensor malloc gradient if train
+/// @brief infer tensor shape, tensor alloc memory
 /// @param sample_inputs 
 /// @param weight_path 
 std::vector<Tensor*> Network::init(std::vector<Tensor*> sample_inputs, std::string weight_path) {
     CHECK_EQ(_input_tensors.size(), sample_inputs.size());
     for (int i = 0; i < _input_tensors.size(); i++) {
         *_input_tensors[i] = *sample_inputs[i];
-        if (_train) _input_tensors[i]->malloc_gradient();
+        _input_tensors[i]->alloc_memory();
     }
     for (Tensor* weight_tensor: _weight_tensors) {
-        if (_train) weight_tensor->malloc_gradient();
+        weight_tensor->alloc_memory();
     }
+    int i = 0;
     for (Operator *op: get_op_seq()) {
+        op->_name = op->type_str() + "_" + std::to_string(i++);
         op->infer_shape();
         for (Tensor *tensor: op->_output_tensors) {
-            tensor->malloc_data();
-            if (_train) tensor->malloc_gradient();
+            tensor->alloc_memory();
         }
     }
     return get_output_tensors();
