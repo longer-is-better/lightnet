@@ -1,3 +1,4 @@
+#include <random>
 #include <cublas_v2.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
@@ -97,12 +98,12 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(
             false,
             false,
-            8,
-            4,
-            6,
-            [](const std::vector<int>& i){return i[0] + i[1];},
-            [](const std::vector<int>& i){return i[1] - i[0];},
-            dim3(4, 4)
+            2,
+            1,
+            2,
+            get_rand_data_gen<float, std::uniform_real_distribution>(-10.f, 10.f),
+            get_rand_data_gen<float, std::uniform_real_distribution>(-10.f, 10.f),
+            dim3(16, 16)
         )
     )
 );
@@ -111,20 +112,35 @@ INSTANTIATE_TEST_SUITE_P(
 // INSTANTIATE_TEST_SUITE_P(
 //     exhaustive,
 //     test_matmul,
-//     testing::Values(
-//         std::make_tuple(
-//             false,
-//             false,
-
+//     testing::Combine(
+//         testing::Values(true, false),
+//         testing::Values(true, false),
+//         testing::Values(1, 8, 64, 512),
+//         testing::Values(1, 128),
+//         testing::Values(1, 256, 1023),
+//         testing::Values(
+//             get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
+//         ),
+//         testing::Values(
+//             get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
+//         ),
+//         testing::Values(
+//             dim3(2, 2),
+//             dim3(8, 8),
+//             dim3(32, 32)
 //         )
 //     )
 // );
 
 TEST_P(test_matmul, positive){
-    Tensor show_W({1, 1, size_t(m), size_t(k)}, cudaMemoryTypeDevice, W_device);
+    std::vector<size_t> W_shape = trans_W ? std::vector<size_t>{size_t(k), size_t(m)} : std::vector<size_t>{size_t(m), size_t(k)};
+    Tensor show_W(W_shape, cudaMemoryTypeDevice, W_device);
     VLOG(8) << "show W \n" << show_W;
-    Tensor show_X({size_t(k), size_t(n)}, cudaMemoryTypeDevice, X_device);
+
+    std::vector<size_t> X_shape = trans_X ? std::vector<size_t>{size_t(n), size_t(k)} : std::vector<size_t>{size_t(k), size_t(n)};
+    Tensor show_X(X_shape, cudaMemoryTypeDevice, X_device);
     VLOG(8) << "show X \n" << show_X;
+
     cublasSgemm(
         handle,
         trans_X ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -134,14 +150,17 @@ TEST_P(test_matmul, positive){
         k,
         &alpha,
         X_device,
-        n,
+        trans_X ? k : n,
         W_device,
-        k,
+        trans_W ? m : k,
         &beta,
         Y_ground_truth_device,
         n
     );
     cudaMemcpy(Y_ground_truth_host, Y_ground_truth_device, Y_size, cudaMemcpyDeviceToHost);
+
+    Tensor gt({size_t(m), size_t(n)}, cudaMemoryTypeHost, Y_ground_truth_host);
+    VLOG(8) << "show gt \n" << gt;
 
     kmatmul<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
         trans_W,
@@ -156,17 +175,22 @@ TEST_P(test_matmul, positive){
     checkCudaErrors(cudaStreamSynchronize(cudaStreamDefault));
     cudaMemcpy(Y_predict_host, Y_predict_device, Y_size, cudaMemcpyDeviceToHost);
 
-    Tensor gt({size_t(m), size_t(n)}, cudaMemoryTypeHost, Y_ground_truth_host);
-    VLOG(8) << "show gt \n" << gt;
     Tensor pd({size_t(m), size_t(n)}, cudaMemoryTypeHost, Y_predict_host);
     VLOG(8) << "show pd \n" << pd;
 
     for (int r = 0; r < m; r++) {
         for (int c = 0; c < n; c++) {
-            CHECK_DOUBLE_EQ(
+            ASSERT_NEAR(
                 Y_predict_host[r * n + c],
-                Y_ground_truth_host[r * n + c]
-            );
+                Y_ground_truth_host[r * n + c],
+                0.00005
+            ) << "\ntrans_W: " + std::to_string(trans_W) +\
+                 "\ntrans_X: " + std::to_string(trans_X) +\
+                 "\nm: " + std::to_string(m) +\
+                 "\nn: " + std::to_string(n) +\
+                 "\nk: " + std::to_string(k) +\
+                 "\nBLOCK: " << BLOCK\
+                 << "at [" << std::to_string(r) << ", " << std::to_string(c) << "]";
         }
     }
 }

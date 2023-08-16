@@ -48,19 +48,16 @@ Tensor::Tensor(std::vector<size_t> shape, cudaMemoryType memtype, float *data):
     }
     _total_size = _element_count * sizeof(float);
 
-    if (data) {
-        if (memtype == cudaMemoryTypeHost) {
-            CHECK_NOTNULL(_p_data = (float*)malloc(_total_size));
-            CHECK_NOTNULL(_p_gradient = (float*)malloc(_total_size));
-            memcpy(_p_data, data, _total_size);
-        } else if (memtype == cudaMemoryTypeDevice) {
-            checkCudaErrors(cudaMalloc(&_p_data, _total_size));
-            checkCudaErrors(cudaMalloc(&_p_gradient, _total_size));
-            checkCudaErrors(cudaMemcpy(_p_data, data, _total_size, cudaMemcpyDeviceToDevice));
-        } else {
-            LOG(FATAL) << "impossible";
-        }
-
+    if (memtype == cudaMemoryTypeHost) {
+        CHECK_NOTNULL(_p_data = (float*)malloc(_total_size));
+        CHECK_NOTNULL(_p_gradient = (float*)malloc(_total_size));
+        if (data) memcpy(_p_data, data, _total_size);
+    } else if (memtype == cudaMemoryTypeDevice) {
+        checkCudaErrors(cudaMalloc(&_p_data, _total_size));
+        checkCudaErrors(cudaMalloc(&_p_gradient, _total_size));
+        if (data) checkCudaErrors(cudaMemcpy(_p_data, data, _total_size, cudaMemcpyDeviceToDevice));
+    } else {
+        LOG(FATAL) << "impossible";
     }
     VLOG(9) << "Tensor shape construct";
 }
@@ -287,17 +284,37 @@ Tensor &Tensor::operator==(const Tensor &tensor) const {
     // TODO: insert return statement here
 }
 
+Tensor Tensor::grad() {
+    Tensor ans(*this);
+    if (_data_memorytype == cudaMemoryTypeHost) {
+        memcpy(_p_data, _p_gradient, _total_size);
+    } else if (_data_memorytype == cudaMemoryTypeDevice) {
+        checkCudaErrors(cudaMemcpy(_p_data, _p_gradient, _total_size, cudaMemcpyDeviceToDevice));
+    } else {
+        LOG(FATAL) << "no";
+    }
+    return ans;
+}
+
 void Tensor::alloc_memory() {
     if (_data_memorytype == cudaMemoryTypeHost) {
         free(_p_data);
         free(_p_gradient);
         CHECK_NOTNULL(_p_data = (float*)malloc(_total_size));
         CHECK_NOTNULL(_p_gradient = (float*)malloc(_total_size));
+        for (int i = 0; i < _element_count; i++) _p_gradient[i] = 1.f;
     } else if (_data_memorytype == cudaMemoryTypeDevice) {
         checkCudaErrors(cudaFree(_p_data));
         checkCudaErrors(cudaFree(_p_gradient));
         checkCudaErrors(cudaMalloc(&_p_data, _total_size));
         checkCudaErrors(cudaMalloc(&_p_gradient, _total_size));
+        dim3 BLOCK(_element_count < 1024 ? _element_count : 1024);
+        dim3 GRID(ceil(_element_count, 1024) / 1024);
+        kmemset<<<GRID, BLOCK>>>(
+            _element_count,
+            _p_gradient,
+            1.f
+        );
     } else {
         LOG(FATAL) << "not implement.";
     }
@@ -401,7 +418,7 @@ std::ostream &operator<<(std::ostream &os, Tensor &tensor) {
     if (tensor._data_memorytype != cudaMemoryTypeHost) {
         Tensor show;
         show = tensor;
-        os << show;
+        os << "[device] " << show;
         return os;
     } else {
         CHECK_EQ(tensor._data_memorytype, cudaMemoryTypeHost);

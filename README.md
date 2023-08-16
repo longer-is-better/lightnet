@@ -117,6 +117,8 @@ void Tensor::update_weights(float alpha, cudaStream_t cudastream) {
 
 ### lunch kernnel 随机 Segmentation fault
 
+### tile matmul 不整除tile的边缘处理
+
 ## diary
 
 [ RUN      ] general/test_relu_float_1d_input.check_output_vs_cpu/2
@@ -220,6 +222,8 @@ kernel 模板貌似没什么意义
 network operator tensor 的 loation（host device）需要理清一遍
 
 析构函数清理
+
+tensor << [] = ~ 需要再思考
 
 # VLOG
 

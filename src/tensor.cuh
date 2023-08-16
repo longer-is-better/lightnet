@@ -43,6 +43,7 @@ public:
     Tensor &operator==(const Tensor &tensor) const;
     ~Tensor();
 
+    Tensor grad();
     void set_shape(std::vector<size_t> shape);
     void alloc_memory();
     bool load_data() {LOG(WARNING) << "not implement"; return false;};

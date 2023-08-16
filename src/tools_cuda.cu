@@ -9,3 +9,8 @@ void check_device_data(float* p_data, size_t ele) {
     VLOG(8) << t[i];
   }
 }
+
+std::ostream& operator<<(std::ostream& os, const dim3& dm) {
+    os << "dim3(" << dm.x << ", " << dm.y << ", " << dm.z << ")";
+    return os;
+}

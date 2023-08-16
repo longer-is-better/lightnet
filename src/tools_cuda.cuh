@@ -24,3 +24,5 @@ void check(T result, char const *const func, const char *const file,
 #define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
 
 void check_device_data(float* p_data, size_t ele);
+
+std::ostream& operator<<(std::ostream& os, const dim3 &dm);

@@ -36,7 +36,8 @@ void Reduce::forward() {
             _output_tensors[0]->_p_data,
             _reduce_op
         );
-        checkCudaErrors(cudaDeviceSynchronize());
+        D(checkCudaErrors(cudaDeviceSynchronize()));
+        D(VLOG(7) << "Reduce " << _reduce_op << " forward output tensor: " << *_output_tensors[0]);
     } else if (2048 < _input_tensors[0]->_element_count && _input_tensors[0]->_element_count <= pow(2048, 2)) {
         LOG(FATAL) << "not implement";
     } else {
@@ -73,4 +74,6 @@ void Reduce::backward() {
         _output_tensors[0]->_p_data
     );
     checkCudaErrors(cudaDeviceSynchronize());
+    Tensor s = _input_tensors[0]->grad();
+    D(VLOG(7) << _name << _reduce_op << " backward get input tensor[0] grad:" << s);
 }

@@ -2,6 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(cuda-gdb) Launch test_kernels",
+            "type": "cuda-gdb",
+            "request": "launch",
+            "program": "${workspaceFolder}//build/tests/test_kernels/test_kernels",
+            "preLaunchTask": "cmake build v2",
+            "args": "--logtostderr=1 --minloglevel=0 --v=8",
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": []
+        },
+        {
             "name": "(gdb) Launch test_kernels",
             "type": "cppdbg",
             "request": "launch",

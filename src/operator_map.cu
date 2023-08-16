@@ -37,8 +37,8 @@ void Map::forward() {
         _map_op,
         _operand
     );
-    checkCudaErrors(cudaDeviceSynchronize());
-    VLOG(8) << "Map " << _map_op << " forward output tensor: " << *_output_tensors[0];
+    D(checkCudaErrors(cudaDeviceSynchronize()));
+    D(VLOG(7) << "Map " << _map_op << " forward output tensor: " << *_output_tensors[0]);
 }
 
 
@@ -46,11 +46,11 @@ void Map::backward() {
     dim3 BLOCK;
     dim3 GRID;
     size_t shared_mem;
-
     
     BLOCK = dim3(32);
     GRID = dim3((_input_tensors[0]->_element_count + BLOCK.x - 1) / BLOCK.x);
     shared_mem = 0;
+
 
     switch (_map_op) {
         case MAP_OP::ADD:
@@ -112,4 +112,7 @@ void Map::backward() {
         default:
             break;
     }
+
+    Tensor s = _input_tensors[0]->grad();
+    D(VLOG(7) << _name << _map_op << " backward get input tensor[0] grad:" << s);
 }

@@ -3,6 +3,7 @@
 #include "operator_matmul.cuh"
 #include "kernel_matmul.cuh"
 
+#include "tools_common.cuh"
 
 MatMul::MatMul(
     Tensor* A,
@@ -37,6 +38,8 @@ void MatMul::forward() {
         (_output_tensors[0]->_shape[0] + BLOCK.y - 1) / BLOCK.y
     );
     size_t shared_mem = BLOCK.x * BLOCK.y * BLOCK.z * sizeof(float) * 2;
+    D(VLOG(7) << "MatMul forward input tensor 0:" << *_input_tensors[0]);
+    D(VLOG(7) << "MatMul forward input tensor 1:" << *_input_tensors[1]);
     kmatmul<<<GRID, BLOCK, shared_mem, _cudastream>>>(
         false,
         false,
@@ -47,7 +50,8 @@ void MatMul::forward() {
         _input_tensors[1]->_p_data,
         _output_tensors[0]->_p_data
     );
-    checkCudaErrors(cudaDeviceSynchronize());
+    D(checkCudaErrors(cudaDeviceSynchronize()));
+    D(VLOG(7) << "MatMul forward output tensor:" << *_output_tensors[0]);
 
 }
 
@@ -73,6 +77,14 @@ void MatMul::backward() {
         _input_tensors[1]->_p_data,
         _input_tensors[0]->_p_gradient
     );
+    D(checkCudaErrors(cudaStreamSynchronize(_cudastream)));
+
+    // Tensor show_y_g, show_x_d;
+    // show_y_g = *_output_tensors[0];
+    // memcpy(show_y_g._p_data, show_y_g._p_gradient, show_y_g._total_size);
+
+    // std::cout << "show_y_g" << show_y_g;
+
 
     BLOCK = dim3(16, 16);
     GRID = dim3(
@@ -90,4 +102,5 @@ void MatMul::backward() {
         _output_tensors[0]->_p_gradient,
         _input_tensors[1]->_p_gradient
     );
+    D(checkCudaErrors(cudaStreamSynchronize(_cudastream)));
 }
