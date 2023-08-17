@@ -2,6 +2,7 @@
 #include "operator.cuh"
 #include "operator_matmul.cuh"
 #include "kernel_matmul.cuh"
+#include "kernel_others.cuh"
 
 #include "tools_common.cuh"
 
@@ -16,7 +17,7 @@ MatMul::MatMul(
 
 std::string MatMul::type_str() { return std::string("MatMul"); }
 
-MatMul* MatMul::copy() { return new MatMul(); }
+MatMul* MatMul::copy() { return new MatMul(_end_of_graph); }
 
 void MatMul::set_cudastream(cudaStream_t cudastream) {
     _cudastream = cudastream;
@@ -55,9 +56,23 @@ void MatMul::forward() {
 
 
 void MatMul::backward() {
+    if (_end_of_graph) {
+        dim3 BLOCK(_output_tensors[0]->_element_count < 1024 ? _output_tensors[0]->_element_count : 1024);
+        dim3 GRID(ceil(_output_tensors[0]->_element_count, 1024) / 1024);
+        kmemset<<<GRID, BLOCK, 0, _cudastream>>>(
+            _output_tensors[0]->_element_count,
+            _output_tensors[0]->_p_gradient,
+            1.f
+        );
+    }
     dim3 BLOCK;
     dim3 GRID;
     size_t shared_mem;
+
+
+    check_device_data(_output_tensors[0]->_p_gradient, 1);
+    check_device_data(_input_tensors[1]->_p_data, 1);
+
 
     BLOCK = dim3(16, 16);
     GRID = dim3(
@@ -77,6 +92,17 @@ void MatMul::backward() {
     );
     D(checkCudaErrors(cudaStreamSynchronize(_cudastream)));
 
+
+    check_device_data(_input_tensors[0]->_p_gradient, 1);
+
+
+    VLOG(7) << "???????????????????????????????????";
+
+
+    check_device_data(_input_tensors[0]->_p_data, 1);
+    check_device_data(_output_tensors[0]->_p_gradient, 1);
+
+
     BLOCK = dim3(16, 16);
     GRID = dim3(
         (_input_tensors[1]->_shape[1] + BLOCK.x - 1) / BLOCK.x,
@@ -94,6 +120,9 @@ void MatMul::backward() {
         _input_tensors[1]->_p_gradient
     );
     D(checkCudaErrors(cudaStreamSynchronize(_cudastream)));
+
+
+    check_device_data(_input_tensors[1]->_p_gradient, 1);
 
     D(Tensor s1 = _input_tensors[0]->grad());
     D(Tensor s2 = _input_tensors[1]->grad());

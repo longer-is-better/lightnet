@@ -13,49 +13,6 @@
 #include "tools_common.cuh"
 
 
-// TEST(network, smoke) {
-//     ComputeGraph test_graph;
-//     test_graph._input_tensors.push_back(new Tensor());
-
-//     test_graph._weight_tensors.push_back(new Tensor({2, 2}));
-//     for (int i = 0; i < test_graph._weight_tensors[0]->_element_count; i++) {
-//         test_graph._weight_tensors[0]->_p_data[i] = i;
-//     }
-//     Operator *ele = new ElementWise(test_graph._input_tensors[0], test_graph._weight_tensors[0], ELE_OP::ADD);
-
-//     Network test_net(&test_graph, true, cudaStreamDefault);
-//     test_net.to(cudaMemoryTypeDevice);
-
-//     std::vector<Tensor*> sample_inputs{new Tensor({2, 2})};
-//     sample_inputs[0]->fill_data_random(0.9, 1.0);
-//     test_net.init(sample_inputs, "");
-
-//     test_net._weight_tensors[0]->update_weights(1.f, cudaStreamDefault);
-//     for (int i = 0; i < 10; i++){
-//         Tensor t1({2, 2});
-//         t1.malloc_gradient();
-//         for (int i = 0; i < t1._element_count; i++) {
-//             t1._p_data[i] = i/10.f;
-//         }
-//         auto outs = test_net.forward({&t1});
-//         for (auto o: outs) {
-//             Tensor o_h(*o);
-//             o_h.to(cudaMemoryTypeHost);
-//             std::cout << o_h;
-//         }
-//         checkCudaErrors(cudaMemcpy(test_net.get_output_tensors()[0]->_p_gradient, sample_inputs[0]->_p_data, 16, cudaMemcpyHostToDevice));
-        
-//         test_net.backward();
-//         test_net.update_weights(0.5);
-//         Tensor w(*test_net._weight_tensors[0]);
-//         w.to(cudaMemoryTypeHost);
-//         std::cout << "weight: " << w << std::endl;
-
-
-//         std::cout << "---------------" << std::endl;
-//     }
-// }
-
 TEST(network, mm) {
     ComputeGraph *mm_graph = new ComputeGraph();
     mm_graph->_input_tensors.push_back(new Tensor());
@@ -94,7 +51,7 @@ TEST(network, mm) {
     l1loss.to(cudaMemoryTypeDevice);
     l1loss.init({init_out[0], target}, "");
 
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 9; i++) {
         // input->fill_data_random(-1.0, 1.0);
         input->_p_data[0] = 2.f;
         // input->_p_data[1] = -1.f;

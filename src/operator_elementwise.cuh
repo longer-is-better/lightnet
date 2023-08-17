@@ -11,7 +11,7 @@ public:
 
 
     ElementWise(){};
-    ElementWise(ELE_OP op);
+    ElementWise(ELE_OP op, bool end_of_graph);
     ElementWise(Tensor *A, Tensor *B, ELE_OP op);
     ~ElementWise(){};
 

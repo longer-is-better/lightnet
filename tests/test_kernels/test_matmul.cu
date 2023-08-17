@@ -67,7 +67,7 @@ test_matmul::test_matmul() {
     checkCudaErrors(cudaMalloc(&Y_predict_device, Y_size));
 
     for (int r = 0; r < m; r++) for (int c = 0; c < k; c++) W_host[r * k + c] = W_gen({r, c});
-    for (int r = 0; r < k; r++) for (int c = 0; c < n; c++) X_host[r * n + c] = W_gen({r, c});
+    for (int r = 0; r < k; r++) for (int c = 0; c < n; c++) X_host[r * n + c] = X_gen({r, c});
     checkCudaErrors(cudaMemcpy(W_device, W_host, W_size, cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(X_device, X_host, X_size, cudaMemcpyHostToDevice));
 
@@ -91,46 +91,46 @@ test_matmul::~test_matmul() {
 }
 
 
-// INSTANTIATE_TEST_SUITE_P(
-//     design,
-//     test_matmul,
-//     testing::Values(
-//         std::make_tuple(
-//             false,
-//             false,
-//             2,
-//             1,
-//             2,
-//             get_rand_data_gen<float, std::uniform_real_distribution>(-10.f, 10.f),
-//             get_rand_data_gen<float, std::uniform_real_distribution>(-10.f, 10.f),
-//             dim3(16, 16)
-//         )
-//     )
-// );
+INSTANTIATE_TEST_SUITE_P(
+    design,
+    test_matmul,
+    testing::Values(
+        std::make_tuple(
+            false,
+            true,
+            1,
+            1,
+            1,
+            get_rand_data_gen<float, std::uniform_real_distribution>(1.f, 1.f),
+            get_rand_data_gen<float, std::uniform_real_distribution>(2.f, 2.f),
+            dim3(16, 16)
+        )
+    )
+);
 
 
-// INSTANTIATE_TEST_SUITE_P(
-//     exhaustive,
-//     test_matmul,
-//     testing::Combine(
-//         testing::Values(true, false),
-//         testing::Values(true, false),
-//         testing::Values(1, 8, 64, 512),
-//         testing::Values(1, 128),
-//         testing::Values(1, 256, 1023),
-//         testing::Values(
-//             get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
-//         ),
-//         testing::Values(
-//             get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
-//         ),
-//         testing::Values(
-//             dim3(2, 2),
-//             dim3(8, 8),
-//             dim3(32, 32)
-//         )
-//     )
-// );
+INSTANTIATE_TEST_SUITE_P(
+    exhaustive,
+    test_matmul,
+    testing::Combine(
+        testing::Values(true, false),
+        testing::Values(true, false),
+        testing::Values(1, 8, 64, 512),
+        testing::Values(1, 128),
+        testing::Values(1, 256, 1023),
+        testing::Values(
+            get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
+        ),
+        testing::Values(
+            get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
+        ),
+        testing::Values(
+            dim3(2, 2),
+            dim3(8, 8),
+            dim3(32, 32)
+        )
+    )
+);
 
 TEST_P(test_matmul, positive){
     std::vector<size_t> W_shape = trans_W ? std::vector<size_t>{size_t(k), size_t(m)} : std::vector<size_t>{size_t(m), size_t(k)};

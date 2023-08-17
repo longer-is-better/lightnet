@@ -11,7 +11,7 @@ public:
 
 
     Reduce(){};
-    Reduce(REDUCE_OP op);
+    Reduce(REDUCE_OP op, bool end_of_graph);
     Reduce(Tensor*A, REDUCE_OP op);
     ~Reduce(){};
 

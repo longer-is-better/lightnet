@@ -8,6 +8,7 @@
 class Operator {
 public:
     std::string _name;
+    bool _end_of_graph = false;
     cudaStream_t _cudastream = cudaStreamDefault;
 
     std::map<Operator*, bool> _prevoperators = {};  // bool: exist for topologicalSort
@@ -17,6 +18,7 @@ public:
 
 
     Operator(){};
+    Operator(bool end_of_graph): _end_of_graph(end_of_graph){};
     Operator(
         std::vector<Tensor*> input_tensors,
         std::vector<Tensor*> output_tensors

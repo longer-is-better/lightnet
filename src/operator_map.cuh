@@ -11,7 +11,7 @@ public:
     float _operand;
 
     Map(){};
-    Map(MAP_OP op, float operand = 0.f);
+    Map(MAP_OP op, float operand = 0.f, bool end_of_graph = false);
     Map(Tensor*A, MAP_OP op, float operand = 0.f);
     ~Map(){};
 

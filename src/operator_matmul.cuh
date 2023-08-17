@@ -7,6 +7,7 @@ public:
 
 
     MatMul(){};
+    MatMul(bool end_of_graph): Operator(end_of_graph){};
     MatMul(Tensor*A, Tensor*B);
     ~MatMul(){};
 

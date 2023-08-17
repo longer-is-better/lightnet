@@ -313,7 +313,7 @@ void Tensor::alloc_memory() {
         kmemset<<<GRID, BLOCK>>>(
             _element_count,
             _p_gradient,
-            1.f
+            0.f
         );
     } else {
         LOG(FATAL) << "not implement.";

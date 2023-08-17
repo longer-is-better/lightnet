@@ -4,7 +4,7 @@
 #include "kernel_others.cuh"
 #include "tools_common.cuh"
 
-Map::Map(MAP_OP op, float operand):_map_op(op), _operand(operand) {}
+Map::Map(MAP_OP op, float operand, bool end_of_graph): Operator(_end_of_graph), _map_op(op), _operand(operand) {}
 
 Map::Map(Tensor* A, MAP_OP op, float operand)
     : Operator({A}, {new Tensor()}), _map_op(op),  _operand(operand) {
@@ -13,7 +13,7 @@ Map::Map(Tensor* A, MAP_OP op, float operand)
 
 std::string Map::type_str() { return std::string("Map"); }
 
-Map* Map::copy() { return new Map(_map_op, _operand); }
+Map* Map::copy() { return new Map(_map_op, _operand, _end_of_graph); }
 
 void Map::infer_shape() {
     _output_tensors[0]->set_shape(_input_tensors[0]->_shape);
@@ -43,6 +43,15 @@ void Map::forward() {
 
 
 void Map::backward() {
+    if (_end_of_graph) {
+        dim3 BLOCK(_output_tensors[0]->_element_count < 1024 ? _output_tensors[0]->_element_count : 1024);
+        dim3 GRID(ceil(_output_tensors[0]->_element_count, 1024) / 1024);
+        kmemset<<<GRID, BLOCK, 0, _cudastream>>>(
+            _output_tensors[0]->_element_count,
+            _output_tensors[0]->_p_gradient,
+            1.f
+        );
+    }
     dim3 BLOCK;
     dim3 GRID;
     size_t shared_mem;

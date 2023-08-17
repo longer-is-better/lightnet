@@ -21,7 +21,8 @@
             "args": [
                 "--logtostderr=1",
                 "--minloglevel=0",
-                "--v=8"
+                "--v=8",
+                "--gtest_filter=design/test_matmul*"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

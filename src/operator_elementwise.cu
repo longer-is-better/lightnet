@@ -4,14 +4,14 @@
 #include "kernel_elementwise.cuh"
 #include "tools_common.cuh"
 
-ElementWise::ElementWise(ELE_OP op):_ele_op(op){}
+ElementWise::ElementWise(ELE_OP op, bool end_of_graph): Operator(end_of_graph), _ele_op(op){}
 
 ElementWise::ElementWise(Tensor* A, Tensor* B, ELE_OP op)
     : Operator({A, B}, {new Tensor()}), _ele_op(op) {}
 
 std::string ElementWise::type_str() { return std::string("ElementWise"); }
 
-ElementWise* ElementWise::copy() { return new ElementWise(_ele_op); }
+ElementWise* ElementWise::copy() { return new ElementWise(_ele_op, _end_of_graph); }
 
 void ElementWise::infer_shape() {
     CHECK_EQ(_input_tensors.size(), 2);
@@ -42,6 +42,15 @@ void ElementWise::forward() {
 
 
 void ElementWise::backward() {
+    if (_end_of_graph) {
+        dim3 BLOCK(_output_tensors[0]->_element_count < 1024 ? _output_tensors[0]->_element_count : 1024);
+        dim3 GRID(ceil(_output_tensors[0]->_element_count, 1024) / 1024);
+        kmemset<<<GRID, BLOCK, 0, _cudastream>>>(
+            _output_tensors[0]->_element_count,
+            _output_tensors[0]->_p_gradient,
+            1.f
+        );
+    }
     dim3 BLOCK(32);
     dim3 GRID((_input_tensors[0]->_element_count + BLOCK.x - 1) / BLOCK.x);
     size_t shared_mem = 0;
