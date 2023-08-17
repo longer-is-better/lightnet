@@ -128,8 +128,8 @@ void ElementWise::backward() {
         default:
             break;
     }
-    Tensor s1 = _input_tensors[0]->grad();
-    Tensor s2 = _input_tensors[1]->grad();
+    D(Tensor s1 = _input_tensors[0]->grad());
+    D(Tensor s2 = _input_tensors[1]->grad());
     D(VLOG(7) << _name << _ele_op << " backward get input tensor[0] grad:" << s1);
     D(VLOG(7) << _name << _ele_op << " backward get input tensor[1] grad:" << s2);
 }

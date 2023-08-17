@@ -287,9 +287,9 @@ Tensor &Tensor::operator==(const Tensor &tensor) const {
 Tensor Tensor::grad() {
     Tensor ans(*this);
     if (_data_memorytype == cudaMemoryTypeHost) {
-        memcpy(_p_data, _p_gradient, _total_size);
+        memcpy(ans._p_data, ans._p_gradient, _total_size);
     } else if (_data_memorytype == cudaMemoryTypeDevice) {
-        checkCudaErrors(cudaMemcpy(_p_data, _p_gradient, _total_size, cudaMemcpyDeviceToDevice));
+        checkCudaErrors(cudaMemcpy(ans._p_data, ans._p_gradient, _total_size, cudaMemcpyDeviceToDevice));
     } else {
         LOG(FATAL) << "no";
     }

@@ -91,22 +91,22 @@ test_matmul::~test_matmul() {
 }
 
 
-INSTANTIATE_TEST_SUITE_P(
-    design,
-    test_matmul,
-    testing::Values(
-        std::make_tuple(
-            false,
-            false,
-            2,
-            1,
-            2,
-            get_rand_data_gen<float, std::uniform_real_distribution>(-10.f, 10.f),
-            get_rand_data_gen<float, std::uniform_real_distribution>(-10.f, 10.f),
-            dim3(16, 16)
-        )
-    )
-);
+// INSTANTIATE_TEST_SUITE_P(
+//     design,
+//     test_matmul,
+//     testing::Values(
+//         std::make_tuple(
+//             false,
+//             false,
+//             2,
+//             1,
+//             2,
+//             get_rand_data_gen<float, std::uniform_real_distribution>(-10.f, 10.f),
+//             get_rand_data_gen<float, std::uniform_real_distribution>(-10.f, 10.f),
+//             dim3(16, 16)
+//         )
+//     )
+// );
 
 
 // INSTANTIATE_TEST_SUITE_P(

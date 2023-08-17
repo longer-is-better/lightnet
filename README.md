@@ -119,6 +119,8 @@ void Tensor::update_weights(float alpha, cudaStream_t cudastream) {
 
 ### tile matmul 不整除tile的边缘处理
 
+### reduce avg 边界权重不同
+
 ## diary
 
 [ RUN      ] general/test_relu_float_1d_input.check_output_vs_cpu/2
