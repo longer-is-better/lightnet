@@ -70,10 +70,6 @@ void MatMul::backward() {
     size_t shared_mem;
 
 
-    check_device_data(_output_tensors[0]->_p_gradient, 1);
-    check_device_data(_input_tensors[1]->_p_data, 1);
-
-
     BLOCK = dim3(16, 16);
     GRID = dim3(
         (_input_tensors[0]->_shape[1] + BLOCK.x - 1) / BLOCK.x,
@@ -91,16 +87,6 @@ void MatMul::backward() {
         _input_tensors[0]->_p_gradient
     );
     D(checkCudaErrors(cudaStreamSynchronize(_cudastream)));
-
-
-    check_device_data(_input_tensors[0]->_p_gradient, 1);
-
-
-    VLOG(7) << "???????????????????????????????????";
-
-
-    check_device_data(_input_tensors[0]->_p_data, 1);
-    check_device_data(_output_tensors[0]->_p_gradient, 1);
 
 
     BLOCK = dim3(16, 16);
@@ -121,8 +107,6 @@ void MatMul::backward() {
     );
     D(checkCudaErrors(cudaStreamSynchronize(_cudastream)));
 
-
-    check_device_data(_input_tensors[1]->_p_gradient, 1);
 
     D(Tensor s1 = _input_tensors[0]->grad());
     D(Tensor s2 = _input_tensors[1]->grad());
