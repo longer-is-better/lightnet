@@ -1,57 +1,16 @@
-# cuda-practice
+# LIGHT_NET
 
-Implement alexnet from 0 to 1 as an practice.
+Implement deep learning network frame from scratch for learning and  practicing.
 
-## ENV
+# ENV
 
-| device           | cuda |
-| ---------------- | ---- |
-| GeForce 3080 12G | 11.7 |
+| device           | driver     | cuda |
+| ---------------- | ---------- | ---- |
+| GeForce 3080 12G | 525.125.06 | 12.0 |
 
-cuda 11.7
+## 问题和解决
 
-## pytorch Implement
-
-```
-class AlexNet(nn.Module):
-    def __init__(self):
-        super(AlexNet, self).__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(1, 96, 11, 4), # in_channels, out_channels, kernel_size, stride, padding
-            nn.ReLU(),
-            nn.MaxPool2d(3, 2), # kernel_size, stride
-            # 减小卷积窗口，使用填充为2来使得输入与输出的高和宽一致，且增大输出通道数
-            nn.Conv2d(96, 256, 5, 1, 2),
-            nn.ReLU(),
-            nn.MaxPool2d(3, 2),
-            # 连续3个卷积层，且使用更小的卷积窗口。除了最后的卷积层外，进一步增大了输出通道数。
-            nn.Conv2d(256, 384, 3, 1, 1),
-            nn.ReLU(),
-            nn.Conv2d(384, 384, 3, 1, 1),
-            nn.ReLU(),
-            nn.Conv2d(384, 256, 3, 1, 1),
-            nn.ReLU(),
-            nn.MaxPool2d(3, 2)
-        )
-        self.fc = nn.Sequential(
-            nn.Linear(256*5*5, 4096),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(4096, 4096),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(4096, 10),
-        )
-
-    def forward(self, img):
-        feature = self.conv(img)
-        output = self.fc(feature.view(img.shape[0], -1))
-        return output
-```
-
-## 问题和解决方案
-
-动态库循环依赖: 其中一个使用外部声明
+动态库循环依赖: 其中一个使用外部声明，nvcc编译还存在问题，work round 全部同时编译
 
 纯cpp编译依赖.cu ，没有找到优雅的解决方法，只是将所有cpp改成.cu用ncc编译了
 
@@ -207,32 +166,35 @@ samart ptr !!!!
 
 多卡
 
-多输入多数出网络
-
-内部带有分支的网络
-
 支持可变网络，且性能不下降
-
-推理加速：1. 多cuda stream并行，每次forward制定stream，需要stream pool？ 2. 流水线？
 
 训练加速： 支持多batch，分布式训练？
 
 oprator 其实就是 compute gragh，把oprator 抽象为  compute gragh，可以实现 计算图的 连接 运算
 
-kernel 模板貌似没什么意义
+tensor core
 
-network operator tensor 的 loation（host device）需要理清一遍
+# TODO
 
-析构函数清理
-
-tensor << [] = ~ 需要再思考
-
-整理name
-
-# VLOG
+* [X] 多输入多数出网络
+* [X] 内部带有分支的网络
+* [ ] 推理加速：1. 多cuda stream并行，每次forward制定stream，需要stream pool？ 2. 流水线？
+* [X] network operator tensor 的 loation（host device）需要理清一遍
+* [ ] 析构函数清理，清理内存泄漏
+* [ ] 测试增加 asan
+* [ ] tensor << [] = ~ 需要再思考
+* [ ] 整理name
 
 # schedule
 
 8.15 ~ 8.16 matmul kernel test
 
 8.16 ~ 8.18 matmul net forward backward
+
+matmul reduce kernel 性能分析和优化
+
+LeNet 正确训练
+
+LeNet 多 context 推理
+
+LeNet 多 context 推理 性能优化
