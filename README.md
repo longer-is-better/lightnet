@@ -176,6 +176,14 @@ tensor core
 
 # TODO
 
+* [X] compute graph
+* [X] kernel map elementwise
+* [X] kernel reduce
+* [X] kernel matmul
+* [X] operator matmul
+* [X] operator reduce
+* [X] operator elementwise map
+* [X] graph l1loss
 * [X] 多输入多数出网络
 * [X] 内部带有分支的网络
 * [ ] 推理加速：1. 多cuda stream并行，每次forward制定stream，需要stream pool？ 2. 流水线？
@@ -184,6 +192,9 @@ tensor core
 * [ ] 测试增加 asan
 * [ ] tensor << [] = ~ 需要再思考
 * [ ] 整理name
+* [ ] 图保存， 图加载（反射实现）
+* [ ] 权重保存和加载
+* [ ] 支持直接从 torch script 解析
 
 # schedule
 
