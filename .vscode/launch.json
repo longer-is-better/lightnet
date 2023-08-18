@@ -22,7 +22,7 @@
                 "--logtostderr=1",
                 "--minloglevel=0",
                 "--v=8",
-                "--gtest_filter=design/test_matmul*"
+                "--gtest_filter=design/test_reduce*"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

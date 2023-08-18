@@ -4,7 +4,7 @@
 #include "kernel_others.cuh"
 #include "tools_common.cuh"
 
-Map::Map(MAP_OP op, float operand, bool end_of_graph): Operator(_end_of_graph), _map_op(op), _operand(operand) {}
+Map::Map(MAP_OP op, float operand, bool end_of_graph): Operator(end_of_graph), _map_op(op), _operand(operand) {}
 
 Map::Map(Tensor* A, MAP_OP op, float operand)
     : Operator({A}, {new Tensor()}), _map_op(op),  _operand(operand) {

@@ -203,7 +203,7 @@ network类保存：
 
 samart ptr !!!!
 
-# v3
+# v3 & todo
 
 多卡
 
@@ -226,6 +226,8 @@ network operator tensor 的 loation（host device）需要理清一遍
 析构函数清理
 
 tensor << [] = ~ 需要再思考
+
+整理name
 
 # VLOG
 

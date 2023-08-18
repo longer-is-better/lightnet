@@ -20,10 +20,10 @@ TEST(network, mm) {
 
 
 
-    mm_graph->_weight_tensors[0]->_p_data[0] = 0.5f; // 1.f;
-    mm_graph->_weight_tensors[0]->_p_data[1] = 0.5f; // 1.f;
-    mm_graph->_weight_tensors[0]->_p_data[2] = 0.5f; // 1.f;
-    mm_graph->_weight_tensors[0]->_p_data[3] = 0.5f; // -1.f;
+    // mm_graph->_weight_tensors[0]->_p_data[0] = 0.5f; // 1.f;
+    // mm_graph->_weight_tensors[0]->_p_data[1] = 0.5f; // 1.f;
+    // mm_graph->_weight_tensors[0]->_p_data[2] = 0.5f; // 1.f;
+    // mm_graph->_weight_tensors[0]->_p_data[3] = 0.5f; // -1.f;
 
 
 
@@ -43,7 +43,7 @@ TEST(network, mm) {
 
     Network mm_net(mm_graph, cudaStreamDefault);
     mm_net.to(cudaMemoryTypeDevice);
-    // mm_net._weight_tensors[0]->fill_data_random(-1.0, 1.0);
+    mm_net._weight_tensors[0]->fill_data_random(-1.0, 1.0);
     std::vector<Tensor*> init_out = mm_net.init({input}, "");
 
 
@@ -51,7 +51,7 @@ TEST(network, mm) {
     l1loss.to(cudaMemoryTypeDevice);
     l1loss.init({init_out[0], target}, "");
 
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 2; i++) {
         input->fill_data_random(-1.0, 1.0);
         // input->_p_data[0] = 2.f;
         // input->_p_data[1] = -1.f;

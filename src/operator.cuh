@@ -18,7 +18,9 @@ public:
 
 
     Operator(){};
-    Operator(bool end_of_graph): _end_of_graph(end_of_graph){};
+    Operator(bool end_of_graph): _end_of_graph(end_of_graph){
+        ;
+    };
     Operator(
         std::vector<Tensor*> input_tensors,
         std::vector<Tensor*> output_tensors

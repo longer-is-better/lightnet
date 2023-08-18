@@ -110,7 +110,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 INSTANTIATE_TEST_SUITE_P(
-    exhaustive,
+    exhaustive_combine,
     test_matmul,
     testing::Combine(
         testing::Values(true, false),

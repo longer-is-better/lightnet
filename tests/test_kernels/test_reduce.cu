@@ -49,7 +49,24 @@ test_reduce::~test_reduce() {
 
 
 INSTANTIATE_TEST_SUITE_P(
-    pow_n_n,
+    design,
+    test_reduce,
+    testing::Combine(
+        testing::Values(
+            512
+        ),
+        testing::Values(
+            2
+        ),
+        testing::Values(
+            // REDUCE_OP::SUM,
+            REDUCE_OP::AVG
+        )
+    )
+);
+
+INSTANTIATE_TEST_SUITE_P(
+    exhaustive_combine,
     test_reduce,
     testing::Combine(
         testing::Values(

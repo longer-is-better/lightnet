@@ -4,7 +4,7 @@
 #include "kernel_others.cuh"
 #include "tools_common.cuh"
 
-Reduce::Reduce(REDUCE_OP op, bool end_of_graph): Operator(_end_of_graph), _reduce_op(op) {}
+Reduce::Reduce(REDUCE_OP op, bool end_of_graph): Operator(end_of_graph), _reduce_op(op) {}
 
 Reduce::Reduce(Tensor* A, REDUCE_OP op)
     : Operator({A}, {new Tensor()}), _reduce_op(op) {
@@ -13,7 +13,9 @@ Reduce::Reduce(Tensor* A, REDUCE_OP op)
 
 std::string Reduce::type_str() { return std::string("Reduce"); }
 
-Reduce* Reduce::copy() { return new Reduce(_reduce_op, _end_of_graph); }
+Reduce* Reduce::copy() {
+    return new Reduce(_reduce_op, _end_of_graph);
+}
 
 void Reduce::infer_shape() {
     _output_tensors[0]->set_shape({});
@@ -31,7 +33,7 @@ void Reduce::forward() {
     size_t work_n = _input_tensors[0]->_element_count;
     float *work_space = nullptr;
     checkCudaErrors(cudaMalloc(&work_space, _input_tensors[0]->_total_size));
-    checkCudaErrors(cudaMemcpyAsync(work_space, _input_tensors[0]->_p_data, sizeof(float), cudaMemcpyDeviceToDevice, _cudastream));
+    checkCudaErrors(cudaMemcpyAsync(work_space, _input_tensors[0]->_p_data, _input_tensors[0]->_total_size, cudaMemcpyDeviceToDevice, _cudastream));
     while (work_n != 1){
         GRID = ceil(work_n, BLOCK.x * 2) / (BLOCK.x * 2);
         kreduce<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
@@ -89,10 +91,6 @@ void Reduce::backward() {
     );
 
     checkCudaErrors(cudaDeviceSynchronize());
-    float sss[2];
-    checkCudaErrors(cudaMemcpy(sss, _input_tensors[0]->_p_gradient, _input_tensors[0]->_total_size, cudaMemcpyDeviceToHost));
-
-
 
 
     Tensor s = _input_tensors[0]->grad();
