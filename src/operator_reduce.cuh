@@ -7,12 +7,10 @@
 class Reduce: public Operator
 {
 public:
-    REDUCE_OP _reduce_op;
-
 
     Reduce(){};
-    Reduce(REDUCE_OP op, bool end_of_graph);
-    Reduce(Tensor*A, REDUCE_OP op);
+    Reduce(bool end_of_graph);
+    Reduce(Tensor*A);
     ~Reduce(){};
 
     virtual std::string type_str();

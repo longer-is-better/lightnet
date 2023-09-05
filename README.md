@@ -162,7 +162,7 @@ network类保存：
 
 samart ptr !!!!
 
-# v3 & todo
+# v3
 
 多卡
 
@@ -187,6 +187,7 @@ tensor core
 * [X] 多输入多数出网络
 * [X] 内部带有分支的网络
 * [ ] 推理加速：1. 多cuda stream并行，每次forward制定stream，需要stream pool？ 2. 流水线？
+* [ ] 进一步包装算子的 cuda call config（GRID BLOCK shared_mem），仅暴露 cudastream
 * [X] network operator tensor 的 loation（host device）需要理清一遍
 * [ ] 析构函数清理，清理内存泄漏
 * [ ] 测试增加 asan
@@ -202,7 +203,9 @@ tensor core
 
 8.16 ~ 8.18 matmul net forward backward
 
-matmul reduce kernel 性能分析和优化
+matmul kernel 性能分析和优化
+
+reduce kernel 性能分析和优化
 
 LeNet 正确训练
 

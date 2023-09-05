@@ -2,18 +2,49 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "cmake build v2",
+            "label": "nsight compute test_kernels",
+            "type": "shell",
+            "command": "/usr/local/NVIDIA-Nsight-Compute/ncu",
+            "args": [
+                "-f",
+                "-o",
+                "kreduce_1024_fix",
+                "--import-source",
+                "on",
+                "--set",
+                "full",
+                "${workspaceFolder}/build/tests/test_kernels/test_kernels",
+                "--gtest_filter=*design/test_reduce*"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "configure release",
+                "build"
+            ],
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "build debug",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "configure debug",
+                "build"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "build",
             "type": "shell",
             "command": "cmake",
             "args": [
                 "--build",
                 "${workspaceFolder}/build"
             ],
-            "group": "build",
-            "dependsOn": "cmake configure v2"
+            "group": "build"
         },
         {
-            "label": "cmake configure v2",
+            "label": "configure debug",
             "type": "shell",
             "command": "cmake",
             "args": [
@@ -25,14 +56,24 @@
                 "-DCMAKE_VERBOSE_MAKEFILE=off",
                 "-DDEBUG=1"
             ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            // "dependsOn": "cmake clean v2"
+            "group": "build"
         },
         {
-            "label": "cmake clean v2",
+            "label": "configure release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S",
+                "${workspaceFolder}",
+                "-B",
+                "${workspaceFolder}/build",
+                "-DCMAKE_BUILD_TYPE=release",
+                "-DCMAKE_VERBOSE_MAKEFILE=off"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "cmake clean",
             "type": "shell",
             "command": "cmake",
             "args": [

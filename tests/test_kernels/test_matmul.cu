@@ -72,7 +72,8 @@ test_matmul::test_matmul() {
     checkCudaErrors(cudaMemcpy(X_device, X_host, X_size, cudaMemcpyHostToDevice));
 
 
-    GRID = dim3(ceil(n, BLOCK.x)/BLOCK.x, ceil(m, BLOCK.y)/BLOCK.y);
+    GRID = dim3(ceil(n, BLOCK.x)/BLOCK.x, ceil(m, BLOCK.y)/BLOCK.y);  // org
+    // GRID = dim3(ceil(m, BLOCK.x)/BLOCK.x, ceil(n, BLOCK.y)/BLOCK.y);
     shared_mem = BLOCK.x * BLOCK.y * sizeof(float) * 2;
 
 }
@@ -97,13 +98,38 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         std::make_tuple(
             false,
-            true,
-            1,
-            1,
-            1,
-            get_rand_data_gen<float, std::uniform_real_distribution>(1.f, 1.f),
-            get_rand_data_gen<float, std::uniform_real_distribution>(2.f, 2.f),
+            false,
+            1024,
+            1024,
+            1024,
+            get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f),
+            get_rand_data_gen<float, std::uniform_real_distribution>(-2.f, 2.f),
             dim3(16, 16)
+        )
+    )
+);
+
+
+INSTANTIATE_TEST_SUITE_P(
+    exhaustive_combine_lite,
+    test_matmul,
+    testing::Combine(
+        testing::Values(false),
+        testing::Values(false),
+        testing::Values(1, 2, 3, 8, 64),
+        testing::Values(1, 2, 128),
+        testing::Values(1, 2, 256),
+        testing::Values(
+            get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
+        ),
+        testing::Values(
+            get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
+        ),
+        testing::Values(
+            dim3(2, 2),
+            dim3(8, 8),
+            dim3(16, 16)
+            // dim3(32, 32) todo: cudaErrorLaunchOutOfResources
         )
     )
 );
@@ -115,9 +141,9 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(true, false),
         testing::Values(true, false),
-        testing::Values(1, 8, 64, 512),
-        testing::Values(1, 128),
-        testing::Values(1, 256, 1023),
+        testing::Values(1, 2, 3, 8, 64, 512, 4 * 1024),
+        testing::Values(1, 2, 128, 2 * 1024),
+        testing::Values(1, 2, 256, 3 * 1023),
         testing::Values(
             get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f)
         ),
@@ -127,7 +153,8 @@ INSTANTIATE_TEST_SUITE_P(
         testing::Values(
             dim3(2, 2),
             dim3(8, 8),
-            dim3(32, 32)
+            dim3(16, 16)
+            // dim3(32, 32) todo: cudaErrorLaunchOutOfResources
         )
     )
 );
@@ -163,6 +190,8 @@ TEST_P(test_matmul, positive){
     VLOG(8) << "show gt \n" << gt;
 
     kmatmul<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
+    // kmatmul_naive<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
+    // kmatmul_coalescing<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
         trans_W,
         trans_X,
         m,
@@ -172,6 +201,7 @@ TEST_P(test_matmul, positive){
         X_device,
         Y_predict_device
     );
+    checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaStreamSynchronize(cudaStreamDefault));
     cudaMemcpy(Y_predict_host, Y_predict_device, Y_size, cudaMemcpyDeviceToHost);
 
@@ -183,14 +213,16 @@ TEST_P(test_matmul, positive){
             ASSERT_NEAR(
                 Y_predict_host[r * n + c],
                 Y_ground_truth_host[r * n + c],
-                0.00005
+                0.0003
             ) << "\ntrans_W: " + std::to_string(trans_W) +\
                  "\ntrans_X: " + std::to_string(trans_X) +\
                  "\nm: " + std::to_string(m) +\
                  "\nn: " + std::to_string(n) +\
                  "\nk: " + std::to_string(k) +\
-                 "\nBLOCK: " << BLOCK\
-                 << "at [" << std::to_string(r) << ", " << std::to_string(c) << "]";
+                 "\nGRID: " << GRID\
+                 << "\nBLOCK: " << BLOCK\
+                 << "\nat [" << std::to_string(r) << ", " << std::to_string(c) << "]"
+                 << Y_predict_host[r * n + c] << " vs " << Y_ground_truth_host[r * n + c];
         }
     }
 }

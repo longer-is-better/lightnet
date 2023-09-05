@@ -27,3 +27,9 @@ std::function<DATA_TYPE(const std::vector<int>&)> get_rand_data_gen(
     DISTRIBUTE<DATA_TYPE> dist(lowwer_bound, upper_bound);
     return [dist, gen] (const std::vector<int>& in) mutable {return dist(gen);};
 }
+
+template<class DATA_TYPE>
+std::ostream& operator<<(std::ostream& os, const std::function<DATA_TYPE(const std::vector<int>&)> &func) {
+    os << "rand " << typeid(DATA_TYPE).name();
+    return os;
+}

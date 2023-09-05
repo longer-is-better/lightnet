@@ -280,9 +280,9 @@ Tensor &Tensor::operator[](int i) {
     return *ans;
 }
 
-Tensor &Tensor::operator==(const Tensor &tensor) const {
+// Tensor &Tensor::operator==(const Tensor &tensor) const {
     // TODO: insert return statement here
-}
+// }
 
 Tensor Tensor::grad() {
     Tensor ans(*this);
