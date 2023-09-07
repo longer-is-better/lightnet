@@ -17,6 +17,12 @@ include_directories(${glog_INCLUDE_DIRS})
 find_package(gflags REQUIRED)
 include_directories(${gflags_INCLUDE_DIR})
 
+find_package(OpenMP REQUIRED)
+if(OpenMP_FOUND)
+    add_compile_options(-fopenmp)
+    add_compile_options(-Wunknown-pragmas )
+endif()
+
 enable_testing()
 add_subdirectory(src)
 add_subdirectory(tests)

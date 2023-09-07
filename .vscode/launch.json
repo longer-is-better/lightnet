@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/tests/test_kernels/test_kernels",
             "preLaunchTask": "build debug",
-            "args": "--logtostderr=1 --minloglevel=0 --v=8 --gtest_filter=*design/test_reduce.kreduce_sum_vec4_blksfl_atom*",
+            "args": "--logtostderr=1 --minloglevel=0 --v=8 --gtest_filter=*exhaustive_combine/test_reduce.kreduce_sum*",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": []

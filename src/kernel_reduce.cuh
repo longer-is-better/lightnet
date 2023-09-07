@@ -1,6 +1,5 @@
 #pragma once
 #include <stdio.h>
-#include <iostream>
 #include <cuda/pipeline>
 #include <cooperative_groups/memcpy_async.h>
 
@@ -225,4 +224,44 @@ __global__ void kreduce_sum_vec4_blksfl_atom(DATA_TYPE *I, DATA_TYPE *O, size_t 
     val = block_reduce_sum(val);
     if (threadIdx.x == 0)
         atomicAdd(O, val);
+}
+
+
+
+
+
+template<class DATA_TYPE, class DATA_TYPE4>
+__global__ void kreduce_sum_vec4_warpsfl_atom(DATA_TYPE *I, DATA_TYPE *O, size_t N) {
+    DATA_TYPE val = 0;
+    DATA_TYPE4 frag;
+    for (
+        size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+        i < N / 4;
+        i += gridDim.x * blockDim.x
+    ) {
+        frag = reinterpret_cast<DATA_TYPE4*>(I)[i];
+        val += frag.w + frag.x + frag.y + frag.z;
+    }
+    // in only one thread, process final elements (if there are any)
+
+    if (threadIdx.x < N % 4 && blockIdx.x == 0) {
+        val += I[N - threadIdx.x - 1];
+    }
+
+    val = warp_reduce_sum(val);
+    if ((threadIdx.x & (warpSize - 1)) == 0)
+        atomicAdd(O, val);
+}
+
+
+template<class DATA_TYPE>
+DATA_TYPE kreduce_sum_cpu(DATA_TYPE *I, size_t N) {
+    if (N == 1) return *I;
+    size_t stride = N / 2;
+#pragma omp parallel for
+    for (int i = 0; i < stride; i++) {
+        I[i] += I[i + stride];
+    }
+    if (N % 2) I[0] += I[N - 1];
+    return kreduce_sum_cpu(I, stride);
 }

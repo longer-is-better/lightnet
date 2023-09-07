@@ -1,4 +1,4 @@
-#pragma oncetrans_L
+#pragma once
 
 template <typename T>
 __global__ void kmatmul_naive(bool trans_L, bool trans_R, size_t m, size_t k, size_t n, T *L, T *R, T *O) {
