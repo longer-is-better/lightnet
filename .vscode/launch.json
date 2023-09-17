@@ -23,7 +23,7 @@
                 "--minloglevel=0",
                 "--v=6",
                 // design exhaustive_combine exhaustive_combine_lite test_reduce test_matmul
-                "--gtest_filter=exhaustive_combine/test_transpose.ktranspose_smem_minbkcft/*"
+                "--gtest_filter=exhaustive_combine/test_transpose_double.ktranspose_smem_minbkcft/*"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

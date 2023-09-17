@@ -10,6 +10,7 @@ target_link_libraries(
     ${CUDA_CUBLAS_LIBRARIES}
     OpenMP::OpenMP_CXX
 )
+target_include_directories(test_kernels PUBLIC .)
 set_target_properties(test_kernels PROPERTIES CUDA_ARCHITECTURES "86")
 
 include(GoogleTest)
