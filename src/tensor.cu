@@ -15,7 +15,7 @@
 #include "kernel_map.cuh"
 #include "kernel_others.cuh"
 
-std::vector<size_t> Tensor::show_elements = {4, 4, 3, 1};
+std::vector<size_t> Tensor::show_elements = {8, 8, 3, 1};
 
 
 Tensor::Tensor(){
