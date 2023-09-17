@@ -55,11 +55,11 @@ __device__ int ktranspose_minbkcft_index(int index, int group_size) {
 template <typename DATA_TYPE>
 __global__ void ktranspose_smem_minbkcft(size_t m, size_t n, DATA_TYPE *I, DATA_TYPE *O) {
     assert(blockDim.x == blockDim.y && blockDim.z == 1);
-    extern __shared__ DATA_TYPE tile[];
+    extern __shared__ DATA_TYPE ktranspose_smem_minbkcft_tile[];
 
     size_t x = blockIdx.x * blockDim.x + threadIdx.x;
     size_t y = blockIdx.y * blockDim.y + threadIdx.y;
-    tile[
+    ktranspose_smem_minbkcft_tile[
         ktranspose_minbkcft_index<DATA_TYPE>(
             threadIdx.x * blockDim.y + threadIdx.y,
             blockDim.x
@@ -71,7 +71,7 @@ __global__ void ktranspose_smem_minbkcft(size_t m, size_t n, DATA_TYPE *I, DATA_
     x = blockIdx.y * blockDim.y + threadIdx.x;
     y = blockIdx.x * blockDim.x + threadIdx.y;
     if (x < m && y < n) {
-        O[y * m + x] = tile[
+        O[y * m + x] = ktranspose_smem_minbkcft_tile[
             ktranspose_minbkcft_index<DATA_TYPE>(
                 threadIdx.y * blockDim.x + threadIdx.x,
                 blockDim.x
