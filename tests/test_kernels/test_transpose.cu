@@ -72,24 +72,6 @@ test_transpose::~test_transpose() {
 
 
 INSTANTIATE_TEST_SUITE_P(
-    design,
-    test_transpose,
-    testing::Combine(
-        testing::Values(
-            8
-            // 16
-            // 32
-        ),
-        testing::Values(
-            256
-        ),
-        testing::Values(
-            256
-        )
-    )
-);
-
-INSTANTIATE_TEST_SUITE_P(
     exhaustive_combine,
     test_transpose,
     testing::Combine(
@@ -119,6 +101,27 @@ INSTANTIATE_TEST_SUITE_P(
             1024,
             2240,
             2241
+        )
+    )
+);
+
+
+INSTANTIATE_TEST_SUITE_P(
+    design,
+    test_transpose,
+    testing::Combine(
+        testing::Values(
+            // 1
+            // 4
+            8
+            // 16
+            // 32
+        ),
+        testing::Values(
+            32
+        ),
+        testing::Values(
+            32
         )
     )
 );
@@ -233,6 +236,65 @@ TEST_P(test_transpose, ktranspose_smem_minbkcft){
     );
     size_t shared_mem = TILE_DIM * TILE_DIM * sizeof(float);
     ktranspose_smem_minbkcft<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
+        m,
+        n,
+        X_device,
+        Y_predict_device
+    );
+    checkCudaErrors(
+        cudaMemcpy(
+            Y_predict_host,
+            Y_predict_device,
+            sz,
+            cudaMemcpyDeviceToHost
+        )
+    );
+
+    // Tensor Y_P({n, m}, cudaMemoryTypeHost, Y_predict_host);
+    // std::cout << Y_P;
+
+    float alpha = 1.f, beta = 0.f;
+    cublasSgeam(
+        handle,
+        CUBLAS_OP_T, CUBLAS_OP_T,
+        m, n,
+        &alpha, X_device, n,
+        &beta, X_device, n,
+        Y_ground_truth_device, m
+    );
+    checkCudaErrors(
+        cudaMemcpy(
+            Y_ground_truth_host,
+            Y_ground_truth_device,
+            sz,
+            cudaMemcpyDeviceToHost
+        )
+    );
+
+    // Tensor Y_G({n, m}, cudaMemoryTypeHost, Y_ground_truth_host);
+    // std::cout << Y_G;
+
+    for (int r = 0; r < n; r++)
+        for (int c = 0; c < m; c++)
+            ASSERT_LE(
+                abs((Y_ground_truth_host[r * m + c] - Y_predict_host[r * m + c]) / Y_ground_truth_host[r * m + c]),
+                0.0002
+            )   << "\npos[" << r << ", " << c << "]:"
+                << "\nY_ground_truth_host: " <<  Y_ground_truth_host[r * m + c]
+                << "\nY_predict_host: " <<  Y_predict_host[r * m + c];
+}
+
+
+TEST_P(test_transpose, ktranspose_smem_4xvec4){
+    int BLOCK_TILE_DIM = TILE_DIM;
+    int TILE_DIM = 4 * BLOCK_TILE_DIM;
+    dim3 BLOCK = dim3(BLOCK_TILE_DIM, BLOCK_TILE_DIM);
+    dim3 GRID = dim3(
+        ceil(n, TILE_DIM) / TILE_DIM,
+        ceil(m, TILE_DIM) / TILE_DIM
+    );
+    size_t shared_mem = TILE_DIM * TILE_DIM * sizeof(float);
+    ktranspose_smem_4xvec4<float, float4><<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
         m,
         n,
         X_device,

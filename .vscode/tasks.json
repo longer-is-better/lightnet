@@ -8,13 +8,13 @@
             "args": [
                 "-f",
                 "-o",
-                "ktranspose_smem_minbkcft_8_256",
+                "ktranspose_smem_4xvec4_8_32",
                 "--import-source",
                 "on",
                 "--set",
                 "full",
                 "${workspaceFolder}/build/tests/test_kernels/test_kernels",
-                "--gtest_filter=design/test_transpose.ktranspose_smem_minbkcft/*"
+                "--gtest_filter=design/test_transpose.ktranspose_smem_4xvec4/*"
             ],
             "dependsOrder": "sequence",
             "dependsOn": [
