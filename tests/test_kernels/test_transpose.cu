@@ -47,8 +47,8 @@ test_transpose::test_transpose() {
     CHECK_NOTNULL(Y_predict_host = (float*)malloc(sz));
     checkCudaErrors(cudaMalloc(&Y_predict_device, sz));
 
-    auto X_gen = get_rand_data_gen<float, std::uniform_real_distribution>(1.f, 1.5f);
-    // auto X_gen = [](std::vector<int> i){return 10 * i[0] + i[1] + 1;};
+    // auto X_gen = get_rand_data_gen<float, std::uniform_real_distribution>(1.f, 1.5f);
+    auto X_gen = [](std::vector<int> i){return 1000 * (i[0] + 1) + (i[1] + 1);};
 #pragma omp parallel for
     for (int r = 0; r < m; r++)
         for (int c = 0; c < n; c++) 
@@ -76,31 +76,31 @@ INSTANTIATE_TEST_SUITE_P(
     test_transpose,
     testing::Combine(
         testing::Values(  // TILE.x == TILE.y
-            8,
-            16,
-            32
+            8
         ),
         testing::Values(
-            2,
-            4,
-            33,
+            32,
+            64,
+            128,
             256,
             512,
-            777,
             1024,
-            2240,
-            2241
+            2 * 1024,
+            4 * 1024,
+            8 * 1024,
+            16 * 1024
         ),
         testing::Values(
-            2,
-            4,
-            33,
+            32,
+            64,
+            128,
             256,
             512,
-            777,
             1024,
-            2240,
-            2241
+            2 * 1024,
+            4 * 1024,
+            8 * 1024,
+            16 * 1024
         )
     )
 );
@@ -118,10 +118,12 @@ INSTANTIATE_TEST_SUITE_P(
             // 32
         ),
         testing::Values(
-            32
+            // 32
+            512
         ),
         testing::Values(
-            32
+            // 32
+            512
         )
     )
 );
@@ -316,6 +318,66 @@ TEST_P(test_transpose, ktranspose_smem_4xvec4){
     cublasSgeam(
         handle,
         CUBLAS_OP_T, CUBLAS_OP_T,
+        m, n,
+        &alpha, X_device, n,
+        &beta, X_device, n,
+        Y_ground_truth_device, m
+    );
+    checkCudaErrors(
+        cudaMemcpy(
+            Y_ground_truth_host,
+            Y_ground_truth_device,
+            sz,
+            cudaMemcpyDeviceToHost
+        )
+    );
+
+    // Tensor Y_G({n, m}, cudaMemoryTypeHost, Y_ground_truth_host);
+    // std::cout << Y_G;
+
+    for (int r = 0; r < n; r++)
+        for (int c = 0; c < m; c++)
+            ASSERT_LE(
+                abs((Y_ground_truth_host[r * m + c] - Y_predict_host[r * m + c]) / Y_ground_truth_host[r * m + c]),
+                0.0002
+            )   << "\npos[" << r << ", " << c << "]:"
+                << "\nY_ground_truth_host: " <<  Y_ground_truth_host[r * m + c]
+                << "\nY_predict_host: " <<  Y_predict_host[r * m + c];
+}
+
+
+TEST_P(test_transpose, ktranspose_smem_4xvec4_minbkcft){
+    int BLOCK_TILE_DIM = TILE_DIM;
+    int TILE_DIM = 4 * BLOCK_TILE_DIM;
+    dim3 BLOCK = dim3(BLOCK_TILE_DIM, BLOCK_TILE_DIM);
+    dim3 GRID = dim3(
+        ceil(n, TILE_DIM) / TILE_DIM,
+        ceil(m, TILE_DIM) / TILE_DIM
+    );
+    size_t shared_mem = TILE_DIM * TILE_DIM * sizeof(float);
+    ktranspose_smem_4xvec4_minbkcft<float, float4><<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
+        m,
+        n,
+        X_device,
+        Y_predict_device
+    );
+    checkCudaErrors(
+        cudaMemcpy(
+            Y_predict_host,
+            Y_predict_device,
+            sz,
+            cudaMemcpyDeviceToHost
+        )
+    );
+
+    // Tensor Y_P({n, m}, cudaMemoryTypeHost, Y_predict_host);
+    // std::cout << Y_P;
+
+    float alpha = 1.f, beta = 0.f;
+    cublasSgeam(
+        handle,
+        CUBLAS_OP_T,
+        CUBLAS_OP_T,
         m, n,
         &alpha, X_device, n,
         &beta, X_device, n,

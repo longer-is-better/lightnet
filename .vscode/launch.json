@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/tests/test_kernels/test_kernels",
             "preLaunchTask": "build debug",
-            "args": "--logtostderr=1 --minloglevel=0 --v=8 --gtest_filter=design/test_transpose.ktranspose_smem_4xvec4/0",
+            "args": "--logtostderr=1 --minloglevel=0 --v=8 --gtest_filter=design/test_geam.kgeam_smem_4xvec4_minbkcft/0",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": []
@@ -23,7 +23,7 @@
                 "--minloglevel=0",
                 "--v=6",
                 // design exhaustive_combine exhaustive_combine_lite test_reduce test_matmul
-                "--gtest_filter=design/test_transpose.ktranspose_smem_4xvec4/*"
+                "--gtest_filter=exhaustive_combine/test_geam.kgeam_smem_4xvec4_minbkcft/*"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

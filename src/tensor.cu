@@ -2,6 +2,7 @@
 #include <vector>
 #include <map>
 #include <random>
+#include <iomanip>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 
@@ -15,7 +16,7 @@
 #include "kernel_map.cuh"
 #include "kernel_others.cuh"
 
-std::vector<size_t> Tensor::show_elements = {8, 8, 3, 1};
+std::vector<size_t> Tensor::show_elements = {64, 64, 3, 1};
 
 
 Tensor::Tensor(){
@@ -445,7 +446,7 @@ std::ostream &operator<<(std::ostream &os, Tensor &tensor) {
         } else if (tensor._dim_n == 2) {
             os << "Tensor " << tensor._name << std::endl;
             for (int i = 0; ; i++) {
-                if (i >= tensor.show_elements[tensor._dim_n - 1]) {
+                if (i > tensor.show_elements[tensor._dim_n - 1]) {
                     os << ".\n.\n.\n";
                     break;
                 } else if (i >= tensor._shape[0]) {
@@ -456,13 +457,13 @@ std::ostream &operator<<(std::ostream &os, Tensor &tensor) {
             }
         } else if (tensor._dim_n == 1) {
             for (int i = 0; ; i++) {
-                if (i >= tensor.show_elements[tensor._dim_n - 1]) {
+                if (i > tensor.show_elements[tensor._dim_n - 1]) {
                     os << "...";
                     break;
                 } else if (i >= tensor._shape[0]) {
                     break;
                 } else {
-                    os << tensor._p_data[i] << " ";
+                    os << std::fixed << std::setprecision(1) << tensor._p_data[i] << " ";
                 }
             }
             os << std::endl;
