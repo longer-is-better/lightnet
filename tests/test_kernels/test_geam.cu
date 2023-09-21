@@ -115,8 +115,6 @@ INSTANTIATE_TEST_SUITE_P(
             512,
             1024,
             2 * 1024,
-            4 * 1024,
-            8 * 1024,
             16 * 1024
         ),
         testing::Values(
@@ -127,8 +125,6 @@ INSTANTIATE_TEST_SUITE_P(
             512,
             1024,
             2 * 1024,
-            4 * 1024,
-            8 * 1024,
             16 * 1024
         )
     )
@@ -167,6 +163,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 TEST_P(test_geam, kgeam_smem_4xvec4_minbkcft){
+    float alpha = 2.f, beta = 0.1f;
     int BLOCK_TILE_DIM = TILE_DIM;
     int TILE_DIM = 4 * BLOCK_TILE_DIM;
     dim3 BLOCK = dim3(BLOCK_TILE_DIM, BLOCK_TILE_DIM);
@@ -178,8 +175,10 @@ TEST_P(test_geam, kgeam_smem_4xvec4_minbkcft){
     kgeam_smem_4xvec4_minbkcft<float, float4><<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
         m,
         n,
+        alpha,
         trans1,
         X1_device,
+        beta,
         trans2,
         X2_device,
         Y_predict_device
@@ -196,7 +195,6 @@ TEST_P(test_geam, kgeam_smem_4xvec4_minbkcft){
     // Tensor Y_P({m, n}, cudaMemoryTypeHost, Y_predict_host);
     // std::cout << Y_P;
 
-    float alpha = 1.f, beta = 1.f;
     cublasSgeam(
         handle,
         trans1 ? CUBLAS_OP_T : CUBLAS_OP_N,

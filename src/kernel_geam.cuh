@@ -19,7 +19,7 @@ __device__ int geam_smem_4xvec4_minbkcft_index(int index) {
 
 // frag & vec & minbkcft & STG coalesced, float only
 template <typename DATA_TYPE, typename DATA_TYPE_4>
-__global__ void kgeam_smem_4xvec4_minbkcft(size_t m, size_t n, bool transI1, DATA_TYPE *I1, bool transI2, DATA_TYPE *I2, DATA_TYPE *O) {
+__global__ void kgeam_smem_4xvec4_minbkcft(size_t m, size_t n, DATA_TYPE alpha, bool transI1, DATA_TYPE *I1, DATA_TYPE beta, bool transI2, DATA_TYPE *I2, DATA_TYPE *O) {
     assert(m % 32 == 0 && n % 32 == 0);
     assert(blockDim.x == 8 && blockDim.y == 8 && blockDim.z == 1);
 
@@ -45,39 +45,39 @@ __global__ void kgeam_smem_4xvec4_minbkcft(size_t m, size_t n, bool transI1, DAT
     DATA_TYPE_4 row3 = reinterpret_cast<DATA_TYPE_4*>(I1)[(4 * y_in_kernel + 3) * ((transI1 ? m : n) / 4) + x_in_kernel];
 
     if (transI1){
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 0)] = row0.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 0)] = row0.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 0)] = row0.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 0)] = row0.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 1)] = row1.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 1)] = row1.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 1)] = row1.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 1)] = row1.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 2)] = row2.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 2)] = row2.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 2)] = row2.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 2)] = row2.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 3)] = row3.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 3)] = row3.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 3)] = row3.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 3)] = row3.w;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 0)] = row0.x * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 0)] = row0.y * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 0)] = row0.z * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 0)] = row0.w * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 1)] = row1.x * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 1)] = row1.y * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 1)] = row1.z * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 1)] = row1.w * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 2)] = row2.x * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 2)] = row2.y * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 2)] = row2.z * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 2)] = row2.w * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 3)] = row3.x * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 3)] = row3.y * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 3)] = row3.z * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 3)] = row3.w * alpha;
     } else {
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 0)] = row0.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 1)] = row0.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 2)] = row0.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 3)] = row0.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 0)] = row1.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 1)] = row1.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 2)] = row1.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 3)] = row1.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 0)] = row2.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 1)] = row2.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 2)] = row2.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 3)] = row2.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 0)] = row3.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 1)] = row3.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 2)] = row3.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 3)] = row3.w;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 0)] = row0.x * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 1)] = row0.y * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 2)] = row0.z * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 3)] = row0.w * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 0)] = row1.x * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 1)] = row1.y * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 2)] = row1.z * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 3)] = row1.w * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 0)] = row2.x * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 1)] = row2.y * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 2)] = row2.z * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 3)] = row2.w * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 0)] = row3.x * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 1)] = row3.y * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 2)] = row3.z * alpha;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 3)] = row3.w * alpha;
     }
 
     if (transI2) {
@@ -93,39 +93,39 @@ __global__ void kgeam_smem_4xvec4_minbkcft(size_t m, size_t n, bool transI1, DAT
     row2 = reinterpret_cast<DATA_TYPE_4*>(I2)[(4 * y_in_kernel + 2) * ((transI2 ? m : n) / 4) + x_in_kernel];
     row3 = reinterpret_cast<DATA_TYPE_4*>(I2)[(4 * y_in_kernel + 3) * ((transI2 ? m : n) / 4) + x_in_kernel];
     if (transI2){
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 0)] += row0.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 0)] += row0.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 0)] += row0.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 0)] += row0.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 1)] += row1.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 1)] += row1.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 1)] += row1.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 1)] += row1.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 2)] += row2.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 2)] += row2.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 2)] += row2.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 2)] += row2.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 3)] += row3.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 3)] += row3.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 3)] += row3.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 3)] += row3.w;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 0)] += row0.x * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 0)] += row0.y * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 0)] += row0.z * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 0)] += row0.w * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 1)] += row1.x * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 1)] += row1.y * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 1)] += row1.z * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 1)] += row1.w * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 2)] += row2.x * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 2)] += row2.y * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 2)] += row2.z * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 2)] += row2.w * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 0) * TILE_DIM * 4 + 4 * y_in_block + 3)] += row3.x * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 1) * TILE_DIM * 4 + 4 * y_in_block + 3)] += row3.y * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 2) * TILE_DIM * 4 + 4 * y_in_block + 3)] += row3.z * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * x_in_block + 3) * TILE_DIM * 4 + 4 * y_in_block + 3)] += row3.w * beta;
     } else {
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 0)] += row0.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 1)] += row0.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 2)] += row0.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 3)] += row0.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 0)] += row1.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 1)] += row1.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 2)] += row1.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 3)] += row1.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 0)] += row2.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 1)] += row2.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 2)] += row2.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 3)] += row2.w;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 0)] += row3.x;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 1)] += row3.y;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 2)] += row3.z;
-        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 3)] += row3.w;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 0)] += row0.x * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 1)] += row0.y * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 2)] += row0.z * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 0) * TILE_DIM * 4 + 4 * x_in_block + 3)] += row0.w * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 0)] += row1.x * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 1)] += row1.y * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 2)] += row1.z * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 1) * TILE_DIM * 4 + 4 * x_in_block + 3)] += row1.w * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 0)] += row2.x * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 1)] += row2.y * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 2)] += row2.z * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 2) * TILE_DIM * 4 + 4 * x_in_block + 3)] += row2.w * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 0)] += row3.x * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 1)] += row3.y * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 2)] += row3.z * beta;
+        tile[geam_smem_4xvec4_minbkcft_index((4 * y_in_block + 3) * TILE_DIM * 4 + 4 * x_in_block + 3)] += row3.w * beta;
     }
     __syncthreads();
 
