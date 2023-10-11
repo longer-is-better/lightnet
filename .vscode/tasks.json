@@ -8,11 +8,13 @@
             "args": [
                 "-f",
                 "-o",
-                "kgeam_smem_4xvec4_minbkcft_8_16*1024",
+                "test_geam_tf",
                 "--import-source",
                 "on",
                 "--set",
                 "full",
+                // "--replay-mode",
+                // "application",
                 "${workspaceFolder}/build/tests/test_kernels/test_kernels",
                 "--gtest_filter=design/test_geam.kgeam_smem_4xvec4_minbkcft/*"
             ],
