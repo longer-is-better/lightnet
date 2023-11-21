@@ -150,11 +150,11 @@ INSTANTIATE_TEST_SUITE_P(
         ),
         testing::Values(
             // 64
-            16 * 1024
+            32
         ),
         testing::Values(
             // 32
-            16 * 1024
+            32
         )
     )
 );
@@ -192,8 +192,8 @@ TEST_P(test_geam, kgeam_smem_4xvec4_minbkcft){
         )
     );
 
-    // Tensor Y_P({m, n}, cudaMemoryTypeHost, Y_predict_host);
-    // std::cout << Y_P;
+    Tensor Y_P({m, n}, cudaMemoryTypeHost, Y_predict_host);
+    std::cout << Y_P;
 
     cublasSgeam(
         handle,
@@ -213,8 +213,8 @@ TEST_P(test_geam, kgeam_smem_4xvec4_minbkcft){
         )
     );
 
-    // Tensor Y_G({m, n}, cudaMemoryTypeHost, Y_ground_truth_host);
-    // std::cout << Y_G;
+    Tensor Y_G({m, n}, cudaMemoryTypeHost, Y_ground_truth_host);
+    std::cout << Y_G;
 
     for (int r = 0; r < m; r++)
         for (int c = 0; c < n; c++)

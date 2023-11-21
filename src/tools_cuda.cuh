@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdio>
+#include <map>
+#include <string>
 
 #include <cuda_runtime.h>
 
@@ -26,3 +28,18 @@ void check(T result, char const *const func, const char *const file,
 void check_device_data(float* p_data, size_t ele);
 
 std::ostream& operator<<(std::ostream& os, const dim3 &dm);
+
+struct GPU_TICKTOCK
+{
+    cudaEvent_t tick, tock;
+    float interval;
+};
+
+extern std::map<
+    std::string,
+    GPU_TICKTOCK
+> GPU_TICKTOCKS;
+
+
+void GPU_TICK(std::string task, cudaStream_t stm);
+void GPU_TOCK(std::string task, cudaStream_t stm);

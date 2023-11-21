@@ -1,5 +1,5 @@
-#include<iostream>
-#include<gtest/gtest.h>
+#include <iostream>
+#include <gtest/gtest.h>
 #include <glog/logging.h>
 #include "tools_common.cuh"
 

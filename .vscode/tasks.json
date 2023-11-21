@@ -4,8 +4,10 @@
         {
             "label": "nsight compute test_kernels",
             "type": "shell",
-            "command": "/usr/local/NVIDIA-Nsight-Compute/ncu",
+            // "command": "/usr/local/NVIDIA-Nsight-Compute/ncu",
+            "command": "sudo",
             "args": [
+                "ncu",
                 "-f",
                 "-o",
                 "test_geam_tf",
@@ -64,8 +66,9 @@
                 "-B",
                 "${workspaceFolder}/build",
                 "-DCMAKE_BUILD_TYPE=debug",
-                "-DCMAKE_VERBOSE_MAKEFILE=off",
-                "-DDEBUG=1"
+                "-DCMAKE_VERBOSE_MAKEFILE=on",
+                "-DDEBUG=1",
+                "-DENABLE_PRECOMPILED_HEADERS=OFF"
             ],
             "group": "build"
         },

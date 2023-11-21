@@ -14,6 +14,13 @@
     #define D(x)
 #endif
 
+
+enum class INPUT_FILE_TYPE {
+    npy,
+    pt,
+    bin
+};
+
 size_t ceil(size_t in, size_t align);
 
 // std::uniform_int_distribution
