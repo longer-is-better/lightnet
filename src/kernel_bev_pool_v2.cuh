@@ -1,8 +1,9 @@
 #pragma once
 #include <stdio.h>
-// #include <stdlib.h>
+
 
 /*
+  https://github.com/HuangJunJie2017/BEVDet/blob/dev2.1/mmdet3d/ops/bev_pool_v2/src/bev_pool_cuda.cu
   Function: pillar pooling
   Args:
     c                : number of channels
@@ -25,25 +26,26 @@ __global__ void kbev_pool_v2(int c, int n_intervals,
                                   const int *__restrict__ interval_starts,
                                   const int *__restrict__ interval_lengths,
                                   float* __restrict__ out) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int index = idx / c;
-  int cur_c = idx % c;
-  if (index >= n_intervals) return;
-  int interval_start = interval_starts[index];
-  int interval_length = interval_lengths[index];
-  float psum = 0;
-  const float* cur_depth;
-  const float* cur_feat;
-  for(int i = 0; i < interval_length; i++){
-    cur_depth = depth + ranks_depth[interval_start+i];
-    cur_feat = feat + ranks_feat[interval_start+i] * c + cur_c;
-    psum += *cur_feat * *cur_depth;
-  }
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = idx / c;
+    int cur_c = idx % c;
+    if (index >= n_intervals) return;
+    int interval_start = interval_starts[index];
+    int interval_length = interval_lengths[index];
+    float psum = 0;
+    const float* cur_depth;
+    const float* cur_feat;
+    for(int i = 0; i < interval_length; i++){
+      cur_depth = depth + ranks_depth[interval_start+i];
+      cur_feat = feat + ranks_feat[interval_start+i] * c + cur_c;
+      psum += *cur_feat * *cur_depth;
+    }
 
-  const int* cur_rank = ranks_bev + interval_start;
-  float* cur_out = out + *cur_rank * c + cur_c;
-  *cur_out = psum;
+    const int* cur_rank = ranks_bev + interval_start;
+    float* cur_out = out + *cur_rank * c + cur_c;
+    *cur_out = psum;
 }
+
 
 void bev_pool_v2(
   int c,
@@ -81,7 +83,8 @@ __global__ void kbev_pool_fma_tnc(
     const int *__restrict__ ranks_bev,
     const int *__restrict__ interval_starts,
     const int *__restrict__ interval_lengths,
-    TensorType *__restrict__ out) {
+    TensorType *__restrict__ out
+) {
 
   int tc_idx = blockIdx.x * blockDim.x + threadIdx.x;
   int tn_idx = blockIdx.y * blockDim.y + threadIdx.y;

@@ -69,11 +69,11 @@ public:
                     interval_starts;
 
     int c, n_intervals,\
-        *ranks_depth_device,\
-        *ranks_feat_device,\
-        *ranks_bev_device,\
-        *interval_starts_device,\
-        *interval_lengths_device;
+        *ranks_depth_host, *ranks_depth_device,\
+        *ranks_feat_host, *ranks_feat_device,\
+        *ranks_bev_host, *ranks_bev_device,\
+        *interval_starts_host, *interval_starts_device,\
+        *interval_lengths_host, *interval_lengths_device;
     TENSORTYPE  *depth_host, *depth_device,\
                 *feat_host, *feat_device,\
                 *out_gt_host, *out_gt_device,\
@@ -120,8 +120,20 @@ test_bev_pool_v2_fma_tnc<
 
     depth_host = (TENSORTYPE*)malloc(depth_shape.size<TENSORTYPE>());
     feat_host = (TENSORTYPE*)malloc(feat_shape.size<TENSORTYPE>());
+    ranks_depth_host = (int*)malloc(ranks_depth.num_bytes());
+    ranks_feat_host = (int*)malloc(ranks_feat.num_bytes());
+    ranks_bev_host = (int*)malloc(ranks_bev.num_bytes());
+    interval_starts_host = (int*)malloc(interval_starts.num_bytes());
+    interval_lengths_host = (int*)malloc(interval_lengths.num_bytes());
     out_gt_host = (TENSORTYPE*)malloc(out_shape.size<TENSORTYPE>());
     out_test_host = (TENSORTYPE*)malloc(out_shape.size<TENSORTYPE>());
+
+
+    for(int i = 0; i < ranks_depth.num_vals; i++) ranks_depth_host[i] = (int)ranks_depth.data<float>()[i];
+    for(int i = 0; i < ranks_feat.num_vals; i++) ranks_feat_host[i] = (int)ranks_feat.data<float>()[i];
+    for(int i = 0; i < ranks_bev.num_vals; i++) ranks_bev_host[i] = (int)ranks_bev.data<float>()[i];
+    for(int i = 0; i < interval_starts.num_vals; i++) interval_starts_host[i] = (int)interval_starts.data<float>()[i];
+    for(int i = 0; i < interval_lengths.num_vals; i++) interval_lengths_host[i] = (int)interval_lengths.data<float>()[i];
 
 
     checkCudaErrors(cudaMalloc(&depth_device, depth_shape.size<TENSORTYPE>()));
@@ -134,14 +146,33 @@ test_bev_pool_v2_fma_tnc<
     checkCudaErrors(cudaMalloc(&out_gt_device, out_shape.size<TENSORTYPE>()));
     checkCudaErrors(cudaMalloc(&out_test_device, out_shape.size<TENSORTYPE>()));
 
+    // init data
+    for (int i = 0; i < depth_shape.nums(); i++)
+    {
+        depth_host[i] = TENSORTYPE((i % 100) * 0.01);
+    }
+    for (int i = 0; i < feat_shape.nums(); i++)
+    {
+        feat_host[i] = TENSORTYPE((100 - (i % 100)) * 0.01);
+    }
+
 
     checkCudaErrors(cudaMemcpy(depth_device, depth_host, depth_shape.size<TENSORTYPE>(), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(feat_device, feat_host, feat_shape.size<TENSORTYPE>(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(ranks_depth_device, ranks_depth.data<int>(), ranks_depth.num_bytes(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(ranks_feat_device, ranks_feat.data<int>(), ranks_feat.num_bytes(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(ranks_bev_device, ranks_bev.data<int>(), ranks_bev.num_bytes(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(interval_starts_device, interval_starts.data<int>(), interval_starts.num_bytes(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(interval_lengths_device, interval_lengths.data<int>(), interval_lengths.num_bytes(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(ranks_depth_device, ranks_depth_host, ranks_depth.num_bytes(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(ranks_feat_device, ranks_feat_host, ranks_feat.num_bytes(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(ranks_bev_device, ranks_bev_host, ranks_bev.num_bytes(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(interval_starts_device, interval_starts_host, interval_starts.num_bytes(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(interval_lengths_device, interval_lengths_host, interval_lengths.num_bytes(), cudaMemcpyHostToDevice));
+
+
+    c = feat_shape.w;
+    for (int i = 0; i < interval_lengths.num_vals; i++) {
+        if (interval_lengths_host[i] == -1) {
+            n_intervals = i;
+            break;
+        }
+    }
 
 }
 
@@ -178,7 +209,10 @@ test_bev_pool_v2_fma_tnc<
     // checkCudaErrors(cudaStreamDestroy(stream));
 }
 
-using test_bev_pool_v2_fma_tnc_ff_1_1_32_8 = test_bev_pool_v2_fma_tnc<float, float, 1, 1, 32, 8>;
+using test_bev_pool_v2_fma_tnc_ff_1_1_32_8 = \
+    test_bev_pool_v2_fma_tnc<float, float, 1, 1, 32, 8>;
+
+
 
 INSTANTIATE_TEST_SUITE_P(
     design,
@@ -197,7 +231,7 @@ INSTANTIATE_TEST_SUITE_P(
             DIM(7, 64, 120, 128)
         ),
         testing::Values(
-            DIM(1, 128, 80, 160)
+            DIM(1, 192, 256, 128)
         )
     )
 );
@@ -229,8 +263,6 @@ TEST_P(test_bev_pool_v2_fma_tnc_ff_1_1_32_8, 0){
     GPU_TOCK("bev_pool_v2", cudaStreamDefault);
     std::cout << "bev_pool_v2 cost: " << GPU_TICKTOCKS["bev_pool_v2"].interval << " ms." << std::endl;
     checkCudaErrors(cudaMemcpy(out_gt_host, out_gt_device, out_shape.size<float>(), cudaMemcpyDeviceToHost));
-    
-
 
 
     dim3 gridSize(
@@ -250,12 +282,40 @@ TEST_P(test_bev_pool_v2_fma_tnc_ff_1_1_32_8, 0){
         const_cast<const int*>(interval_lengths_device),
         out_test_device
     );
-    checkCudaErrors(cudaMemcpy(out_test_host, out_test_device, out_shape.size<float>(), cudaMemcpyDeviceToHost));
     GPU_TOCK("kbev_pool_fma_tnc", cudaStreamDefault);
     std::cout << "kbev_pool_fma_tnc cost: " << GPU_TICKTOCKS["kbev_pool_fma_tnc"].interval << " ms." << std::endl;
+    checkCudaErrors(cudaMemcpy(out_test_host, out_test_device, out_shape.size<float>(), cudaMemcpyDeviceToHost));
 
 
+    for (int h = 0; h < out_shape.y; h++) {
+        for (int w = 0; w < out_shape.z; w++) {
+            for (int c = 0; c < out_shape.w; c++) {
+                float out_gt_host_i = out_gt_host[
+                    h * out_shape.z * out_shape.w + \
+                    w * out_shape.w + \
+                    c
+                ] + 1;
+                float out_test_host_i = out_test_host[
+                    h * out_shape.z * out_shape.w + \
+                    w * out_shape.w + \
+                    c
+                ] + 1;
 
+                // std::cout << "check pos[" << h << ", " << w << ", " << c << "]" << std::endl;
+                // std::cout << "\nout_gt_host_i: " <<  out_gt_host_i << "\nout_test_host_i: " <<  out_test_host_i << std::endl;
+
+                ASSERT_LE(
+                    abs(
+                        (out_gt_host_i - out_test_host_i) / out_gt_host_i
+                    ),
+                    0.00001
+                )   << "\npos[" << h << ", " << w << ", " << c << "]:"
+                    << "\nout_gt_host_i: " <<  out_gt_host_i
+                    << "\nout_test_host_i: " <<  out_test_host_i;
+            }
+            // break;
+        }
+    }
 
 
 
