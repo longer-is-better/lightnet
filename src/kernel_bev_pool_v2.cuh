@@ -5,27 +5,19 @@
 /*
   https://github.com/HuangJunJie2017/BEVDet/blob/dev2.1/mmdet3d/ops/bev_pool_v2/src/bev_pool_cuda.cu
   Function: pillar pooling
-  Args:
-    c                : number of channels
-    n_intervals      : number of unique points
-    depth            : input depth, FloatTensor[b,n,d,h,w]
-    feat             : input feat, FloatTensor[b,n,h,w,c]
-    ranks_depth      : input index of depth, IntTensor[n]
-    ranks_feat       : input index of feat, IntTensor[n]
-    ranks_bev        : output index, IntTensor[n]
-    interval_lengths : starting position for pooled point, IntTensor[n_intervals]
-    interval_starts  : how many points in each pooled point, IntTensor[n_intervals]
-    out              : output features, FloatTensor[b, d, h, w, c]
 */
-__global__ void kbev_pool_v2(int c, int n_intervals,
-                                  const float *__restrict__ depth,
-                                  const float *__restrict__ feat,
-                                  const int *__restrict__ ranks_depth,
-                                  const int *__restrict__ ranks_feat,
-                                  const int *__restrict__ ranks_bev,
-                                  const int *__restrict__ interval_starts,
-                                  const int *__restrict__ interval_lengths,
-                                  float* __restrict__ out) {
+__global__ void kbev_pool_v2(
+    int c,                                          // : number of channels
+    int n_intervals,                                // : number of unique points
+    const float *__restrict__ depth,                // : input depth, FloatTensor[b,n,d,h,w]
+    const float *__restrict__ feat,                 // : input feat, FloatTensor[b,n,h,w,c]
+    const int *__restrict__ ranks_depth,            // : input index of depth, IntTensor[n]
+    const int *__restrict__ ranks_feat,             // : input index of feat, IntTensor[n]
+    const int *__restrict__ ranks_bev,              // : output index, IntTensor[n]
+    const int *__restrict__ interval_starts,        // : starting position for pooled point, IntTensor[n_intervals]
+    const int *__restrict__ interval_lengths,       // : how many points in each pooled point, IntTensor[n_intervals]
+    float* __restrict__ out                         // : output features, FloatTensor[b, d, h, w, c]
+) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int index = idx / c;
     int cur_c = idx % c;
@@ -46,8 +38,7 @@ __global__ void kbev_pool_v2(int c, int n_intervals,
     *cur_out = psum;
 }
 
-
-void bev_pool_v2(
+void bev_pool_v2_b256(
   int c,
   int n_intervals,
   const float* depth,
@@ -60,6 +51,32 @@ void bev_pool_v2(
   float* out
 ) {
   kbev_pool_v2<<<(int)ceil(((double)n_intervals * c / 256)), 256>>>(
+    c,
+    n_intervals,
+    depth,
+    feat,
+    ranks_depth,
+    ranks_feat,
+    ranks_bev,
+    interval_starts,
+    interval_lengths,
+    out
+  );
+}
+
+void bev_pool_v2_b1024(
+  int c,
+  int n_intervals,
+  const float* depth,
+  const float* feat,
+  const int* ranks_depth,
+  const int* ranks_feat,
+  const int* ranks_bev,
+  const int* interval_starts,
+  const int* interval_lengths,
+  float* out
+) {
+  kbev_pool_v2<<<(int)ceil(((double)n_intervals * c / 1024)), 1024>>>(
     c,
     n_intervals,
     depth,
@@ -130,4 +147,69 @@ __global__ void kbev_pool_fma_tnc(
     }
 
   }
+}
+
+
+__global__ void kbev_pool_v2_threadm_atoadd(
+    int n,
+    int c,                                          // : number of channels
+    int n_intervals,                                // : number of unique points
+    const float *__restrict__ depth,                // : input depth, FloatTensor[b,n,d,h,w]
+    const float *__restrict__ feat,                 // : input feat, FloatTensor[b,n,h,w,c]
+    const int *__restrict__ ranks_depth,            // : input index of depth, IntTensor[n]
+    const int *__restrict__ ranks_feat,             // : input index of feat, IntTensor[n]
+    const int *__restrict__ ranks_bev,              // : output index, IntTensor[n]
+    const int *__restrict__ interval_starts,        // : starting position for pooled point, IntTensor[n_intervals]
+    const int *__restrict__ interval_lengths,       // : how many points in each pooled point, IntTensor[n_intervals]
+    float* __restrict__ out                         // : output features, FloatTensor[b, d, h, w, c]
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = idx / c;
+    int cur_c = idx % c;
+    if (index >= n)
+        return;
+
+    int id = 0;
+    int sum = 0;
+    for (int i = 0; i < n_intervals; ++i) {
+        sum += interval_lengths[i];
+        if (sum > index) {
+        break;
+        }
+        id++;
+    }
+
+    int interval_start = interval_starts[id];
+    float *cur_out = out + ranks_bev[interval_start] * c + cur_c;
+    atomicAdd(cur_out,
+                depth[ranks_depth[index]] * feat[ranks_feat[index] * c + cur_c]);
+
+}
+
+void bev_pool_v2_threadm_atoadd(
+    const int n,
+  int c,
+  int n_intervals,
+  const float* depth,
+  const float* feat,
+  const int* ranks_depth,
+  const int* ranks_feat,
+  const int* ranks_bev,
+  const int* interval_starts,
+  const int* interval_lengths,
+  float* out
+) {
+  kbev_pool_v2_threadm_atoadd<<<(int)ceil(((double)n * c / 256)), 256>>>(
+    n,
+    c,
+    n_intervals,
+    depth,
+    feat,
+    ranks_depth,
+    ranks_feat,
+    ranks_bev,
+    interval_starts,
+    interval_lengths,
+    out
+  );
 }
