@@ -153,6 +153,14 @@ __global__ void kbev_pool_fma_tnc(
   }
 }
 
+__device__ void __block_shuffle_up(){
+
+}
+
+
+
+
+
 __global__ void kbev_pool_v2_morethread(
     int N,                                          // : [2500543] = interval_starts[n_intervals - 1] + interval_lengths[n_intervals - 1]
     int c,                                          // : number of channels 128                                          fixed
@@ -167,32 +175,60 @@ __global__ void kbev_pool_v2_morethread(
                                                     //                                      h * w = 192 * 256 = 94152
 ) {
     unsigned n_index = blockDim.x * blockIdx.x + threadIdx.x,
-             lane = threadIdx.x & 0x1f, \
+             thread_lane = threadIdx.x & 0x1f, \
+             warp_lane = threadIdx.x & 0xffffffe0, \
              cur_c = blockIdx.y, \
              interval_n = 0;
     if (n_index >= N) return;
-
     interval_n = ranks_bev[n_index];  // opt
-
-
-    float cur_depth, cur_feat, cur_df, down_df;
+    float cur_depth, cur_feat, sum_df, down_sum_df;
     cur_depth = depth[ranks_depth[n_index]];
-
-
     cur_feat = feat[ranks_feat[n_index] * c + cur_c];  // opt
-
-    cur_df = cur_depth * cur_feat;
-
-
+    sum_df = cur_depth * cur_feat;
     for (unsigned int step = 1; step <=16; step = step << 1) {
-        down_df = __shfl_down_sync(0xffffffff, cur_df, step);
-        if (interval_n == __shfl_down_sync(0xffffffff, interval_n, step) && lane + step < warpSize)
-            cur_df += down_df;
+        down_sum_df = __shfl_down_sync(0xffffffff, sum_df, step);
+        if (interval_n == __shfl_down_sync(0xffffffff, interval_n, step) && thread_lane + step < warpSize)
+            sum_df += down_sum_df;
     }
 
+
     // OPT
-    if (interval_n != __shfl_up_sync(0xffffffff, interval_n, 1) || lane == 0)
-        atomicAdd(out + interval_n * c + cur_c, cur_df);  // long lenght conflict
+    // if (interval_n != __shfl_up_sync(0xffffffff, interval_n, 1) || thread_lane == 0)
+    //     atomicAdd(out + interval_n * c + cur_c, sum_df);  // long lenght conflict
+
+
+
+    bool tail_head = \
+        interval_n == __reduce_max_sync(0xffffffff, interval_n) && \
+        (
+            thread_lane == 0 || \
+            __shfl_up_sync(0xffffffff, interval_n, 1) < interval_n
+        );
+
+    __shared__ float block_partial_res[1024];
+    if (interval_n != __shfl_up_sync(0xffffffff, interval_n, 1) || thread_lane == 0){
+        block_partial_res[threadIdx.x] = sum_df;
+    }
+    __shared__ unsigned block_interval_n[1024];
+    block_interval_n[threadIdx.x] = interval_n;
+
+    // __syncthreads();
+    float res_down;
+    bool sf;
+    for (unsigned int step = 1; step <=16; step = step << 1) {
+        sf = tail_head && interval_n == block_interval_n[(warp_lane + step) * warpSize];
+        if (sf) res_down = block_partial_res[(warp_lane + step) * warpSize];
+        // __syncthreads();
+        if (sf) block_partial_res[threadIdx.x] += res_down;
+    }
+
+    if (
+        thread_lane == 0 && interval_n != block_interval_n[threadIdx.x - 1] ||
+        interval_n != __shfl_up_sync(0xffffffff, interval_n, 1) ||
+        warp_lane == 0
+    ) {
+        atomicAdd(out + interval_n * c + cur_c, block_partial_res[threadIdx.x]);
+    }
 }
 
 void bev_pool_v2_morethread(
