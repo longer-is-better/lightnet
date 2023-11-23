@@ -70,6 +70,20 @@
             "group": "build"
         },
         {
+            "label": "run test_kernels release",
+            "type": "shell",
+            "command": "build/tests/test_kernels/test_kernels",
+            "args": [
+                "--gtest_filter=*test_bev_pool_v2_fma_tnc_ff_1_1_32_8.0*"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "configure release",
+                "build"
+            ],
+            "group": "test"
+        },
+        {
             "label": "build",
             "type": "shell",
             "command": "cmake",

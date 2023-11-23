@@ -153,34 +153,46 @@ __global__ void kbev_pool_fma_tnc(
   }
 }
 
-
 __global__ void kbev_pool_v2_morethread(
     int N,                                          // : [2500543] = interval_starts[n_intervals - 1] + interval_lengths[n_intervals - 1]
     int c,                                          // : number of channels 128                                          fixed
+    int n_intervals,                                // : number of unique points   48043                                 variable
     const float *__restrict__ depth,                // : input depth, FloatTensor[b,n,d,h,w] [1, 7, 120, 64, 120]        fixed
     const float *__restrict__ feat,                 // : input feat, FloatTensor[b,n,h,w,c] [1, 7, 64, 120, 128]         fixed
     const int *__restrict__ ranks_depth,            // : input index of depth, IntTensor[n] [2500543]                    variable
     const int *__restrict__ ranks_feat,             // : input index of feat, IntTensor[n] [2500543] = interval_starts[n_intervals - 1] + interval_lengths[n_intervals - 1]                     variable
     const int *__restrict__ ranks_bev,              // : output index, IntTensor[n] [2500543]                            variable
+    const int *__restrict__ interval_starts,        // : starting position for pooled point, IntTensor[n_intervals]      variable
     float* __restrict__ out                         // : output features, FloatTensor[b, d, h, w, c] [1, 1, 192, 256, 128]  fixed
                                                     //                                      h * w = 192 * 256 = 94152
 ) {
-    unsigned n_index = blockDim.x * blockIdx.x + threadIdx.x;
-    if (n_index >= N) return;
-    unsigned lane = threadIdx.x & 0x1f, \
+    unsigned n_index = blockDim.x * blockIdx.x + threadIdx.x,
+             lane = threadIdx.x & 0x1f, \
              cur_c = blockIdx.y, \
-             interval_n = ranks_bev[n_index];
-    float down_df;
-    float cur_depth = depth[ranks_depth[n_index]];
-    float cur_feat = feat[ranks_feat[n_index] * c + cur_c];
-    float cur_df = cur_depth * cur_feat;
+             interval_n = 0;
+    if (n_index >= N) return;
+
+    interval_n = ranks_bev[n_index];  // opt
+
+
+    float cur_depth, cur_feat, cur_df, down_df;
+    cur_depth = depth[ranks_depth[n_index]];
+
+
+    cur_feat = feat[ranks_feat[n_index] * c + cur_c];  // opt
+
+    cur_df = cur_depth * cur_feat;
+
+
     for (unsigned int step = 1; step <=16; step = step << 1) {
         down_df = __shfl_down_sync(0xffffffff, cur_df, step);
         if (interval_n == __shfl_down_sync(0xffffffff, interval_n, step) && lane + step < warpSize)
             cur_df += down_df;
     }
+
+    // OPT
     if (interval_n != __shfl_up_sync(0xffffffff, interval_n, 1) || lane == 0)
-        atomicAdd(out + interval_n * c + cur_c, cur_df);
+        atomicAdd(out + interval_n * c + cur_c, cur_df);  // long lenght conflict
 }
 
 void bev_pool_v2_morethread(
@@ -196,14 +208,16 @@ void bev_pool_v2_morethread(
     const int* interval_lengths,
     float* out
 ) {
-  kbev_pool_v2_morethread<<<dim3(N + 1023 / 1024, 128), 1024>>>(
+  kbev_pool_v2_morethread<<<dim3((N + 1023) / 1024, 128), 1024>>>(
     N,
     c,
+    n_intervals,
     depth,
     feat,
     ranks_depth,
     ranks_feat,
     ranks_bev,
+    interval_starts,
     out
   );
 }

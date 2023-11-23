@@ -243,41 +243,60 @@ TEST_P(test_bev_pool_v2_fma_tnc_ff_1_1_32_8, 0){
     using TENSORTYPE = float;
     using ACCTYPE = float;
 
-    n_intervals = 3;
-
+    // n_intervals = n_intervals >> 1;
+    // warm up
+    // for (int i = 0; i < 10000; i++) {
+    //     bev_pool_v2_b256(
+    //         c,
+    //         n_intervals,
+    //         depth_device,
+    //         feat_device,
+    //         ranks_depth_device,
+    //         ranks_feat_device,
+    //         ranks_bev_device,
+    //         interval_starts_device,
+    //         interval_lengths_device,
+    //         out_gt_device
+    //     );
+    // }
 
     GPU_TICK("bev_pool_v2_b256", cudaStreamDefault);
-    bev_pool_v2_b256(
-        c,
-        n_intervals,
-        depth_device,
-        feat_device,
-        ranks_depth_device,
-        ranks_feat_device,
-        ranks_bev_device,
-        interval_starts_device,
-        interval_lengths_device,
-        out_gt_device
-    );
+    // for (int i = 0; i < 100; i++) {
+        bev_pool_v2_b256(
+            c,
+            n_intervals,
+            depth_device,
+            feat_device,
+            ranks_depth_device,
+            ranks_feat_device,
+            ranks_bev_device,
+            interval_starts_device,
+            interval_lengths_device,
+            out_gt_device
+        );
+    // }
     GPU_TOCK("bev_pool_v2_b256", cudaStreamDefault);
     std::cout << "bev_pool_v2_b256 cost: " << GPU_TICKTOCKS["bev_pool_v2_b256"].interval << " ms." << std::endl;
     checkCudaErrors(cudaMemcpy(out_gt_host, out_gt_device, out_shape.size<float>(), cudaMemcpyDeviceToHost));
 
 
     GPU_TICK("bev_pool_v2_morethread", cudaStreamDefault);
-    bev_pool_v2_morethread(
-        interval_starts_host[n_intervals - 1] + interval_lengths_host[n_intervals - 1],
-        c,
-        n_intervals,
-        depth_device,
-        feat_device,
-        ranks_depth_device,
-        ranks_feat_device,
-        ranks_bev_device,
-        interval_starts_device,
-        interval_lengths_device,
-        out_test_device
-    );
+
+    // for (int i = 0; i < 100; i++) {
+        bev_pool_v2_morethread(
+            interval_starts_host[n_intervals - 1] + interval_lengths_host[n_intervals - 1],
+            c,
+            n_intervals,
+            depth_device,
+            feat_device,
+            ranks_depth_device,
+            ranks_feat_device,
+            ranks_bev_device,
+            interval_starts_device,
+            interval_lengths_device,
+            out_test_device
+        );
+    // }
     GPU_TOCK("bev_pool_v2_morethread", cudaStreamDefault);
     std::cout << "bev_pool_v2_morethread cost: " << GPU_TICKTOCKS["bev_pool_v2_morethread"].interval << " ms." << std::endl;
     checkCudaErrors(cudaMemcpy(out_test_host, out_test_device, out_shape.size<float>(), cudaMemcpyDeviceToHost));
