@@ -4,13 +4,13 @@
         {
             "label": "nsight compute test_kernels",
             "type": "shell",
-            // "command": "/usr/local/NVIDIA-Nsight-Compute/ncu",
-            "command": "sudo",
+            "command": "/usr/local/NVIDIA-Nsight-Compute/ncu",
+            // "command": "sudo",
             "args": [
-                "ncu",
+                // "ncu",
                 "-f",
                 "-o",
-                "test_geam_tf",
+                "test_bev_pool",
                 "--import-source",
                 "on",
                 "--set",
@@ -18,7 +18,7 @@
                 // "--replay-mode",
                 // "application",
                 "${workspaceFolder}/build/tests/test_kernels/test_kernels",
-                "--gtest_filter=design/test_geam.kgeam_smem_4xvec4_minbkcft/*"
+                "--gtest_filter=*design/test_bev_pool_v2_fma_tnc_ff_1_1_32_8.0/*"
             ],
             "dependsOrder": "sequence",
             "dependsOn": [

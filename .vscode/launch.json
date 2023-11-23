@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/tests/test_kernels/test_kernels",
             "preLaunchTask": "build debug",
-            "args": "--logtostderr=1 --minloglevel=0 --v=8 --gtest_filter=design/test_geam.kgeam_smem_4xvec4_minbkcft/0",
+            "args": "--logtostderr=1 --minloglevel=0 --v=8 --gtest_filter=*test_bev_pool_v2_fma_tnc_ff_1_1_32_8.0*",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": []

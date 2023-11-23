@@ -170,13 +170,13 @@ __global__ void kbev_pool_v2_morethread(
     unsigned lane = threadIdx.x & 0x1f, \
              cur_c = blockIdx.y, \
              interval_n = ranks_bev[n_index];
-    float cur_depth, cur_feat, cur_df, down_df;
-    cur_depth = depth[ranks_depth[n_index]];
-    cur_feat = feat[ranks_feat[n_index] * c + cur_c];
-    cur_df = cur_depth * cur_feat;
+    float down_df;
+    float cur_depth = depth[ranks_depth[n_index]];
+    float cur_feat = feat[ranks_feat[n_index] * c + cur_c];
+    float cur_df = cur_depth * cur_feat;
     for (unsigned int step = 1; step <=16; step = step << 1) {
         down_df = __shfl_down_sync(0xffffffff, cur_df, step);
-        if (interval_n == __shfl_down_sync(0xffffffff, interval_n, step))
+        if (interval_n == __shfl_down_sync(0xffffffff, interval_n, step) && lane + step < warpSize)
             cur_df += down_df;
     }
     if (interval_n != __shfl_up_sync(0xffffffff, interval_n, 1) || lane == 0)
