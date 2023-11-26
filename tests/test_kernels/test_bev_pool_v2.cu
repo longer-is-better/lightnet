@@ -68,12 +68,15 @@ public:
                     interval_lengths,\
                     interval_starts;
 
-    int c, n_intervals,\
+    int c, n_intervals, n_intervals_e,\
         *ranks_depth_host, *ranks_depth_device,\
         *ranks_feat_host, *ranks_feat_device,\
         *ranks_bev_host, *ranks_bev_device,\
+        *ranks_bev_mask_host, *ranks_bev_mask_device,\
         *interval_starts_host, *interval_starts_device,\
-        *interval_lengths_host, *interval_lengths_device;
+        *interval_lengths_host, *interval_lengths_device,\
+        *interval_starts_e_host, *interval_starts_e_device,\
+        *interval_lengths_e_host, *interval_lengths_e_device;
     TENSORTYPE  *depth_host, *depth_device,\
                 *feat_host, *feat_device,\
                 *out_gt_host, *out_gt_device,\
@@ -123,11 +126,15 @@ test_bev_pool_v2_fma_tnc<
     ranks_depth_host = (int*)malloc(ranks_depth.num_bytes());
     ranks_feat_host = (int*)malloc(ranks_feat.num_bytes());
     ranks_bev_host = (int*)malloc(ranks_bev.num_bytes());
+    ranks_bev_mask_host = (int*)malloc(interval_starts.num_bytes()); memset(ranks_bev_mask_host, 0, interval_starts.num_bytes());
     interval_starts_host = (int*)malloc(interval_starts.num_bytes());
     interval_lengths_host = (int*)malloc(interval_lengths.num_bytes());
+    interval_starts_e_host = (int*)malloc(interval_starts.num_bytes());
+    interval_lengths_e_host = (int*)malloc(interval_lengths.num_bytes());
     out_gt_host = (TENSORTYPE*)malloc(out_shape.size<TENSORTYPE>());
     out_test_host = (TENSORTYPE*)malloc(out_shape.size<TENSORTYPE>());
 
+    c = feat_shape.w;
 
     for(int i = 0; i < ranks_depth.num_vals; i++) ranks_depth_host[i] = (int)ranks_depth.data<float>()[i];
     for(int i = 0; i < ranks_feat.num_vals; i++) ranks_feat_host[i] = (int)ranks_feat.data<float>()[i];
@@ -135,14 +142,42 @@ test_bev_pool_v2_fma_tnc<
     for(int i = 0; i < interval_starts.num_vals; i++) interval_starts_host[i] = (int)interval_starts.data<float>()[i];
     for(int i = 0; i < interval_lengths.num_vals; i++) interval_lengths_host[i] = (int)interval_lengths.data<float>()[i];
 
+    for (int i = 0; i < ranks_bev.num_vals; i++) {
+        int idx = ranks_bev_host[i];
+        if (idx != -1 && ranks_bev_mask_host[idx] == 0)
+        ranks_bev_mask_host[idx] = 1;
+    }
+    int j = 0;
+    for (int i = 0; i < interval_starts.num_vals; i++) {
+        if (ranks_bev_mask_host[i] == 0) {
+            interval_starts_e_host[i] = 0;
+            interval_lengths_e_host[i] = 0;
+        } else {
+            interval_starts_e_host[i] = interval_starts_host[j];
+            interval_lengths_e_host[i] = interval_lengths_host[j];
+            j++;
+        }
+    }
+
+    n_intervals_e = 192 * 256;
+    for (int i = 0; i < interval_lengths.num_vals; i++) {
+        if (interval_lengths_host[i] == -1) {
+            n_intervals = i;
+            break;
+        }
+    }
+
 
     checkCudaErrors(cudaMalloc(&depth_device, depth_shape.size<TENSORTYPE>()));
     checkCudaErrors(cudaMalloc(&feat_device, feat_shape.size<TENSORTYPE>()));
     checkCudaErrors(cudaMalloc(&ranks_depth_device, ranks_depth.num_bytes()));
     checkCudaErrors(cudaMalloc(&ranks_feat_device, ranks_feat.num_bytes()));
     checkCudaErrors(cudaMalloc(&ranks_bev_device, ranks_bev.num_bytes()));
+    checkCudaErrors(cudaMalloc(&ranks_bev_mask_device, interval_starts.num_bytes()));
     checkCudaErrors(cudaMalloc(&interval_starts_device, interval_starts.num_bytes()));
     checkCudaErrors(cudaMalloc(&interval_lengths_device, interval_lengths.num_bytes()));
+    checkCudaErrors(cudaMalloc(&interval_starts_e_device, interval_starts.num_bytes()));
+    checkCudaErrors(cudaMalloc(&interval_lengths_e_device, interval_lengths.num_bytes()));
     checkCudaErrors(cudaMalloc(&out_gt_device, out_shape.size<TENSORTYPE>()));
     checkCudaErrors(cudaMalloc(&out_test_device, out_shape.size<TENSORTYPE>()));
 
@@ -162,17 +197,12 @@ test_bev_pool_v2_fma_tnc<
     checkCudaErrors(cudaMemcpy(ranks_depth_device, ranks_depth_host, ranks_depth.num_bytes(), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(ranks_feat_device, ranks_feat_host, ranks_feat.num_bytes(), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(ranks_bev_device, ranks_bev_host, ranks_bev.num_bytes(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(ranks_bev_mask_device, ranks_bev_mask_host, interval_starts.num_bytes(), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(interval_starts_device, interval_starts_host, interval_starts.num_bytes(), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(interval_lengths_device, interval_lengths_host, interval_lengths.num_bytes(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(interval_starts_e_device, interval_starts_e_host, interval_starts.num_bytes(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(interval_lengths_e_device, interval_lengths_e_host, interval_lengths.num_bytes(), cudaMemcpyHostToDevice));
 
-
-    c = feat_shape.w;
-    for (int i = 0; i < interval_lengths.num_vals; i++) {
-        if (interval_lengths_host[i] == -1) {
-            n_intervals = i;
-            break;
-        }
-    }
 
 }
 
@@ -192,17 +222,28 @@ test_bev_pool_v2_fma_tnc<
     BC,
     BN
 >::~test_bev_pool_v2_fma_tnc() {
+    free(ranks_depth_host);
+    free(ranks_feat_host);
+    free(ranks_bev_host);
+    free(ranks_bev_mask_host);
+    free(interval_starts_host);
+    free(interval_lengths_host);
+    free(interval_starts_e_host);
+    free(interval_lengths_e_host);
     free(depth_host);
     free(feat_host);
     free(out_gt_host);
     free(out_test_host);
-    checkCudaErrors(cudaFree(depth_device));
-    checkCudaErrors(cudaFree(feat_device));
     checkCudaErrors(cudaFree(ranks_depth_device));
     checkCudaErrors(cudaFree(ranks_feat_device));
     checkCudaErrors(cudaFree(ranks_bev_device));
+    checkCudaErrors(cudaFree(ranks_bev_mask_device));
     checkCudaErrors(cudaFree(interval_starts_device));
     checkCudaErrors(cudaFree(interval_lengths_device));
+    checkCudaErrors(cudaFree(interval_starts_e_device));
+    checkCudaErrors(cudaFree(interval_lengths_e_device));
+    checkCudaErrors(cudaFree(depth_device));
+    checkCudaErrors(cudaFree(feat_device));
     checkCudaErrors(cudaFree(out_gt_device));
     checkCudaErrors(cudaFree(out_test_device));
 
@@ -220,8 +261,8 @@ INSTANTIATE_TEST_SUITE_P(
             INPUT_FILE_TYPE::npy
         ),
         testing::Values(
-            // "/home/jovyan/lightnet/tests/test_kernels/test_bev_pool_v2_inputs/npy"
-            "/home/dongwei/Workspace/lightnet/tests/test_kernels/test_bev_pool_v2_inputs/npy"
+            "/home/jovyan/lightnet/tests/test_kernels/test_bev_pool_v2_inputs/npy"
+            // "/home/dongwei/Workspace/lightnet/tests/test_kernels/test_bev_pool_v2_inputs/npy"
         ),
         testing::Values(
             DIM(7, 120, 64, 120)
@@ -236,70 +277,40 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST_P(test_bev_pool_v2_fma_tnc_ff_1_1_32_8, 0){
-    constexpr int TC = 1;
-    constexpr int TN = 1;
-    constexpr int BC = 32;
-    constexpr int BN = 8;
-    using TENSORTYPE = float;
-    using ACCTYPE = float;
-
-    // n_intervals = n_intervals >> 1;
-    // warm up
-    // for (int i = 0; i < 10000; i++) {
-    //     bev_pool_v2_b256(
-    //         c,
-    //         n_intervals,
-    //         depth_device,
-    //         feat_device,
-    //         ranks_depth_device,
-    //         ranks_feat_device,
-    //         ranks_bev_device,
-    //         interval_starts_device,
-    //         interval_lengths_device,
-    //         out_gt_device
-    //     );
-    // }
 
     GPU_TICK("bev_pool_v2_b256", cudaStreamDefault);
-    // for (int i = 0; i < 100; i++) {
-        bev_pool_v2_b256(
-            c,
-            n_intervals,
-            depth_device,
-            feat_device,
-            ranks_depth_device,
-            ranks_feat_device,
-            ranks_bev_device,
-            interval_starts_device,
-            interval_lengths_device,
-            out_gt_device
-        );
-    // }
+    bev_pool_v2_b256(
+        c,
+        n_intervals,
+        depth_device,
+        feat_device,
+        ranks_depth_device,
+        ranks_feat_device,
+        ranks_bev_device,
+        interval_starts_device,
+        interval_lengths_device,
+        out_gt_device
+    );
     GPU_TOCK("bev_pool_v2_b256", cudaStreamDefault);
     std::cout << "bev_pool_v2_b256 cost: " << GPU_TICKTOCKS["bev_pool_v2_b256"].interval << " ms." << std::endl;
     checkCudaErrors(cudaMemcpy(out_gt_host, out_gt_device, out_shape.size<float>(), cudaMemcpyDeviceToHost));
 
 
-    GPU_TICK("bev_pool_v2_morethread", cudaStreamDefault);
-
-    // for (int i = 0; i < 100; i++) {
-        bev_pool_v2_morethread(
-            interval_starts_host[n_intervals - 1] + interval_lengths_host[n_intervals - 1],
-            c,
-            n_intervals,
-            depth_device,
-            feat_device,
-            ranks_depth_device,
-            ranks_feat_device,
-            ranks_bev_device,
-            interval_starts_device,
-            interval_lengths_device,
-            out_test_device
-        );
-    // }
-    GPU_TOCK("bev_pool_v2_morethread", cudaStreamDefault);
-    std::cout << "bev_pool_v2_morethread cost: " << GPU_TICKTOCKS["bev_pool_v2_morethread"].interval << " ms." << std::endl;
+    GPU_TICK("bev_pool_float_float", cudaStreamDefault);
+    bev_pool_float_float(
+        c, n_intervals_e,
+        const_cast<const float*>(depth_device),
+        const_cast<const float*>(feat_device),
+        const_cast<const int*>(ranks_depth_device),
+        const_cast<const int*>(ranks_feat_device),
+        const_cast<const int*>(interval_starts_e_device),
+        const_cast<const int*>(interval_lengths_e_device),
+        out_test_device
+    );
+    GPU_TOCK("bev_pool_float_float", cudaStreamDefault);
+    std::cout << "bev_pool_float_float cost: " << GPU_TICKTOCKS["bev_pool_float_float"].interval << " ms." << std::endl;
     checkCudaErrors(cudaMemcpy(out_test_host, out_test_device, out_shape.size<float>(), cudaMemcpyDeviceToHost));
+
 
 
 
@@ -332,65 +343,6 @@ TEST_P(test_bev_pool_v2_fma_tnc_ff_1_1_32_8, 0){
             // break;
         }
     }
-
-
-
-
-
-
-    // dim3 gridSize(
-    //     (c + TC * BC - 1)/(TC * BC),
-    //     (n_intervals + TN * BN - 1)/(TN * BN)
-    // );
-    // dim3 blockSize(BC, BN);
-    // GPU_TICK("kbev_pool_fma_tnc", cudaStreamDefault);
-    // kbev_pool_fma_tnc<TENSORTYPE, ACCTYPE, TC, TN><<<gridSize, blockSize>>>(
-    //     c, n_intervals,
-    //     const_cast<const TENSORTYPE*>(depth_device),
-    //     const_cast<const TENSORTYPE*>(feat_device),
-    //     const_cast<const int*>(ranks_depth_device),
-    //     const_cast<const int*>(ranks_feat_device),
-    //     const_cast<const int*>(ranks_bev_device),
-    //     const_cast<const int*>(interval_starts_device),
-    //     const_cast<const int*>(interval_lengths_device),
-    //     out_test_device
-    // );
-    // GPU_TOCK("kbev_pool_fma_tnc", cudaStreamDefault);
-    // std::cout << "kbev_pool_fma_tnc cost: " << GPU_TICKTOCKS["kbev_pool_fma_tnc"].interval << " ms." << std::endl;
-    // checkCudaErrors(cudaMemcpy(out_test_host, out_test_device, out_shape.size<float>(), cudaMemcpyDeviceToHost));
-
-
-    // for (int h = 0; h < out_shape.y; h++) {  // 192
-    //     for (int w = 0; w < out_shape.z; w++) {  // 256
-    //         for (int c = 0; c < out_shape.w; c++) {  // 128
-    //             float out_gt_host_i = out_gt_host[
-    //                 h * out_shape.z * out_shape.w + \
-    //                 w * out_shape.w + \
-    //                 c
-    //             ] + 1;
-    //             float out_test_host_i = out_test_host[
-    //                 h * out_shape.z * out_shape.w + \
-    //                 w * out_shape.w + \
-    //                 c
-    //             ] + 1;
-
-    //             // std::cout << "check pos[" << h << ", " << w << ", " << c << "]" << std::endl;
-    //             // std::cout << "\nout_gt_host_i: " <<  out_gt_host_i << "\nout_test_host_i: " <<  out_test_host_i << std::endl;
-
-    //             ASSERT_LE(
-    //                 abs(
-    //                     (out_gt_host_i - out_test_host_i) / out_gt_host_i
-    //                 ),
-    //                 0.00001
-    //             )   << "\npos[" << h << ", " << w << ", " << c << "]:"
-    //                 << "\nout_gt_host_i: " <<  out_gt_host_i
-    //                 << "\nout_test_host_i: " <<  out_test_host_i;
-    //         }
-    //         // break;
-    //     }
-    // }
-
-
 
 
 }
