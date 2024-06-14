@@ -101,9 +101,9 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(
             false,
             false,
-            4 * 1024,
-            4 * 1024,
-            4 * 1024,
+            256,
+            256,
+            256,
             get_rand_data_gen<float, std::uniform_real_distribution>(-1.f, 1.f),
             get_rand_data_gen<float, std::uniform_real_distribution>(-2.f, 2.f),
             dim3(16, 16)
@@ -170,26 +170,48 @@ TEST_P(test_matmul, positive){
     Tensor show_X(X_shape, cudaMemoryTypeDevice, X_device);
     VLOG(8) << "show X \n" << show_X;
 
-    // cublasSgemm(
-    //     handle,
-    //     trans_X ? CUBLAS_OP_T : CUBLAS_OP_N,
-    //     trans_W ? CUBLAS_OP_T : CUBLAS_OP_N,
-    //     n,
-    //     m,
-    //     k,
-    //     &alpha,
-    //     X_device,
-    //     trans_X ? k : n,
-    //     W_device,
-    //     trans_W ? m : k,
-    //     &beta,
-    //     Y_ground_truth_device,
-    //     n
-    // );
+    cublasSgemm(
+        handle,
+        trans_X ? CUBLAS_OP_T : CUBLAS_OP_N,
+        trans_W ? CUBLAS_OP_T : CUBLAS_OP_N,
+        n,
+        m,
+        k,
+        &alpha,
+        X_device,
+        trans_X ? k : n,
+        W_device,
+        trans_W ? m : k,
+        &beta,
+        Y_ground_truth_device,
+        n
+    );
     cudaMemcpy(Y_ground_truth_host, Y_ground_truth_device, Y_size, cudaMemcpyDeviceToHost);
 
     Tensor gt({size_t(m), size_t(n)}, cudaMemoryTypeHost, Y_ground_truth_host);
     VLOG(8) << "show gt \n" << gt;
+
+    kmatmul_naive<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
+        trans_W,
+        trans_X,
+        m,
+        k,
+        n,
+        W_device,
+        X_device,
+        Y_predict_device
+    );
+
+    kmatmul_coalescing<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
+        trans_W,
+        trans_X,
+        m,
+        k,
+        n,
+        W_device,
+        X_device,
+        Y_predict_device
+    );
 
     kmatmul<<<GRID, BLOCK, shared_mem, cudaStreamDefault>>>(
         trans_W,
@@ -201,6 +223,7 @@ TEST_P(test_matmul, positive){
         X_device,
         Y_predict_device
     );
+    
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaStreamSynchronize(cudaStreamDefault));
     cudaMemcpy(Y_predict_host, Y_predict_device, Y_size, cudaMemcpyDeviceToHost);
@@ -208,20 +231,20 @@ TEST_P(test_matmul, positive){
     Tensor pd({size_t(m), size_t(n)}, cudaMemoryTypeHost, Y_predict_host);
     VLOG(8) << "show pd \n" << pd;
 
-    // for (int r = 0; r < m; r++) {
-    //     for (int c = 0; c < n; c++) {
-    //         ASSERT_LE(
-    //             abs(Y_predict_host[r * n + c] - Y_ground_truth_host[r * n + c]) / Y_ground_truth_host[r * n + c],
-    //             0.05
-    //         ) << "\ntrans_W: " + std::to_string(trans_W) +\
-    //              "\ntrans_X: " + std::to_string(trans_X) +\
-    //              "\nm: " + std::to_string(m) +\
-    //              "\nn: " + std::to_string(n) +\
-    //              "\nk: " + std::to_string(k) +\
-    //              "\nGRID: " << GRID\
-    //              << "\nBLOCK: " << BLOCK\
-    //              << "\nat [" << std::to_string(r) << ", " << std::to_string(c) << "]"
-    //              << Y_predict_host[r * n + c] << " vs " << Y_ground_truth_host[r * n + c];
-    //     }
-    // }
+    for (int r = 0; r < m; r++) {
+        for (int c = 0; c < n; c++) {
+            ASSERT_LE(
+                abs(Y_predict_host[r * n + c] - Y_ground_truth_host[r * n + c]) / Y_ground_truth_host[r * n + c],
+                0.01
+            ) << "\ntrans_W: " + std::to_string(trans_W) +\
+                 "\ntrans_X: " + std::to_string(trans_X) +\
+                 "\nm: " + std::to_string(m) +\
+                 "\nn: " + std::to_string(n) +\
+                 "\nk: " + std::to_string(k) +\
+                 "\nGRID: " << GRID\
+                 << "\nBLOCK: " << BLOCK\
+                 << "\nat [" << std::to_string(r) << ", " << std::to_string(c) << "]"
+                 << Y_predict_host[r * n + c] << " vs " << Y_ground_truth_host[r * n + c];
+        }
+    }
 }

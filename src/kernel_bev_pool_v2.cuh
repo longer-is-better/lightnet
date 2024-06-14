@@ -319,52 +319,14 @@ __global__ void kbev_pool_v2_morethread(
     cur_feat = feat[ranks_feat[n_index] * c + cur_c];  // opt
     sum_df = cur_depth * cur_feat;
 
-
-    // write to ans!!!!!!
-
-    // 1.
-    // atomicAdd(out + interval_n * c + cur_c, sum_df);  // long lenght conflict
-
-
-    // 2.
-    for (unsigned int step = 1; step <=16; step = step << 1) {
-        down_sum_df = __shfl_down_sync(0xffffffff, sum_df, step);
-        if (interval_n == __shfl_down_sync(0xffffffff, interval_n, step) && thread_lane + step < warpSize)
-            sum_df += down_sum_df;
+    // OPT
+    if (interval_n != __shfl_up_sync(0xffffffff, interval_n, 1) || thread_lane == 0) {
+        // atomicAdd(out + interval_n * c + cur_c, sum_df);
+        // atomicAdd(out + cur_c * 192 * 256 + interval_n, sum_df);
     }
 
-    // 2.1
-    if (interval_n != __shfl_up_sync(0xffffffff, interval_n, 1) || thread_lane == 0)
-        atomicAdd(out + interval_n * c + cur_c, sum_df);  // long lenght conflict
-        // out[interval_n * c + cur_c] += sum_df;
 
 
-    // 2.2
-    // bool tail_head = \
-    //     interval_n == __reduce_max_sync(0xffffffff, interval_n) && \
-    //     (
-    //         thread_lane == 0 || \
-    //         __shfl_up_sync(0xffffffff, interval_n, 1) < interval_n
-    //     );
-    // __shared__ float s_head_dfs[16];  // hardcode 16 = (blockDim.x 512 / warpsize 32
-    // if (tail_head) s_head_dfs[warp_lane] = sum_df;
-    // __shared__ int s_interval_n[16];  // hardcode 16 = (blockDim.x 512 / warpsize 32)
-    // s_interval_n[warp_lane] = interval_n;
-    // __syncthreads();
-    // for (int step = 1; step <= 8; step = step << 1) {
-    //     if (tail_head && warp_lane + 1 < 16 && interval_n == s_interval_n[warp_lane + 1]) {  // hardcode 16 = (blockDim.x 512 / warpsize 32)
-            
-    //         // s_head_dfs[2 * warp_lane + 1] += s_head_dfs[2 * (warp_lane + 1)];
-    //         // s_head_dfs[2 * (warp_lane + 1)] = 0;
-    //         // if (thread_lane == 0) {sum_df  = s_head_dfs[2 * warp_lane];}
-    //         // if (tail_head == 0) sum_df = s_head_dfs[2 * warp_lane + 1];
-    //         // if (thread_lane == 0) s_head_dfs[2 * warp_lane] = sum_df;
-    //         // if (tail_head == 0) s_head_dfs[2 * warp_lane + 1] = sum_df;
-    //     }
-    // }
-
-
-    // 4.
     // bool tail_head = \
     //     interval_n == __reduce_max_sync(0xffffffff, interval_n) && \
     //     (
