@@ -1,12 +1,15 @@
 #include "topk.h"
 
 __managed__ int source[N];   //原数组 
+__managed__ int sourceIdx[N];
 //__managed__  cuda关键字，用于声明所谓的托管内存，允许内存在CPU和GPU之间自动共享。
 //用 __managed__ 声明的变量可以同时被 CPU 和 GPU 访问，无需手动在主机（CPU）和设备（GPU）之间复制数据。
 //使用托管内存简化了内存管理，因为它允许 CPU 和 GPU 在无需显式数据传输命令的情况下访问相同的内存。
  
 __managed__ int gpu_result[topk];  //topk最终结果
+__managed__ int gpu_result_Idx[topk];
 __managed__ int _1_pass_result[topk * GRID_SIZE];//每个block的前 topk 个，即中间结果
+__managed__ int _1_pass_Idx[topk * GRID_SIZE];
  
 //理论，求一个大数组的前20个最大值，先将数组放入GPU内，每个block中求出最大的前20个值，放入_1_passresult
 //然后每个block前20个值放一块在求前20个值得到最中结果
@@ -18,7 +21,8 @@ int main(){
 	printf("初始化源数据.....\n");
 	for (int i = 0; i < N; i++) {
 		// source[i] = rand();
-		source[i] = (i + 1) % 100;
+		source[i] = i + 1;
+		sourceIdx[i] = i;
 	}
 	printf("完成初始化源数据.....\n");
  
@@ -37,8 +41,8 @@ int main(){
 	int times = 1;
 	//计算
 	for (int i = 0; i < times; i++) {
-		gpu_topk <<<GRID_SIZE, BLOCK_SIZE >>> (source, _1_pass_result, N, topk);
-		gpu_topk <<<1, BLOCK_SIZE >>> (_1_pass_result, gpu_result, topk * GRID_SIZE, topk);
+		gpu_topk <<<GRID_SIZE, BLOCK_SIZE >>> (source, sourceIdx, _1_pass_result, _1_pass_Idx, N, topk);
+		gpu_topk <<<1, BLOCK_SIZE >>> (_1_pass_result, _1_pass_Idx, gpu_result, gpu_result_Idx, topk * GRID_SIZE, topk);
 		cudaDeviceSynchronize();
 		//cudaDeviceSynchronize() 函数会阻塞调用线程，直到 GPU 完成所有队列中的操作。
 		// 这包括所有 CUDA 核心、内存复制和其他相关的 GPU 操作。
@@ -50,9 +54,10 @@ int main(){
  
 	//cpu结果初始化
 	int cpu_result[topk] = { 0 }; //cpu结果存储
+	int cpu_result_Idx[topk] = { 0 }; //cpu结果存储
 	printf("CPU Run *************\n");
 	//计算
-	cpu_topk(source, cpu_result, N, topk);
+	cpu_topk(source, sourceIdx, cpu_result, cpu_result_Idx, N, topk);
 	printf("GPU Run Complete *************\n");
 	cudaEventRecord(stop_cpu);
 	cudaEventSynchronize(stop_cpu);
@@ -65,13 +70,19 @@ int main(){
 	//判断GPU计算是否有误
 	bool error = false;
 	for (int i = 0; i < topk; i++) {
-		printf(" CPU top%d:\t%d;\tGputop%d:\t%d;\n", i + 1, cpu_result[i], i + 1, gpu_result[i]);
+		// printf(" CPU top%d:\t%d;\tGputop%d:\t%d;\n", i + 1, cpu_result[i], i + 1, gpu_result[i]);
+		printf(" CPU top%d:\t%d\t%d;\tGputop%d:\t%d\t%d;\n", i + 1, cpu_result[i], cpu_result_Idx[i], i + 1, gpu_result[i], gpu_result_Idx[i]);
 		if (fabs(gpu_result[i] - cpu_result[i]) > 0) {
 			error = true;
 		}
 	}
+
 	printf("Result:%s\n", (error ? "Error" : "pass"));
 	printf("CPU time: %.2f; GPU time: %.2f\n", time_cpu, time_gpu);
+
+	// for (int i = 0; i < topk * GRID_SIZE; ++i) {
+	// 	printf("%d ", _1_pass_Idx[i]);
+	// }
  
 	return 0;
 }

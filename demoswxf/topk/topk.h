@@ -25,7 +25,7 @@ __device__ __host__ void insert_sort(int*array,int k,int data);
 	//__device__ 声明一个函数为设备函数，该函数只能在GPU上执行，一般是被其他设备函数或者kernel调用
 	// __host__ 声明一个函数为主机函数，该函数只能在CPU上执行，通常用于管理设备内存、启动核心等操作。
 
-__global__ void gpu_topk(int* input, int* output, int length, int k);
+__global__ void gpu_topk(int* input, int* inIdx, int* output, int* outIdx, int length, int k);
 	/*
 	参数说明：
 	input 输入数组
@@ -33,4 +33,4 @@ __global__ void gpu_topk(int* input, int* output, int length, int k);
 	length 输入数组的长度
 	*/
  
-void cpu_topk(int* input, int* output, int length, int k);
+void cpu_topk(int* input, int* inIdx, int* output, int* outIdx, int length, int k);
